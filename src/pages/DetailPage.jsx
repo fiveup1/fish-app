@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { proxyImage } from '../lib/imageProxy'
 
 const INFO_ROWS = [
   { key: 'scientific_name', label: '學名', icon: '🔬', italic: true },
@@ -119,7 +120,7 @@ export default function DetailPage() {
         {fish.photos?.length > 0 ? (
           <>
             <img
-              src={fish.photos[photoIdx]}
+              src={proxyImage(fish.photos[photoIdx])}
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
             {fish.photos.length > 1 && (

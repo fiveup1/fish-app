@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { proxyImage } from '../lib/imageProxy'
 
 const CATEGORIES = [
   { key: 'all', label: '全部', emoji: '🌊' },
@@ -15,7 +16,7 @@ const CATEGORIES = [
 
 function FishCard({ fish, onClick }) {
   const [imgLoaded, setImgLoaded] = useState(false)
-  const primaryPhoto = fish.photos?.[0]
+  const primaryPhoto = proxyImage(fish.photos?.[0])
 
   return (
     <div
@@ -63,21 +64,7 @@ function FishCard({ fish, onClick }) {
             🐟
           </div>
         )}
-        {/* Sashimi badge */}
-        {fish.sashimi_grade && (
-          <div style={{
-            position: 'absolute', top: 6, right: 6,
-            background: 'rgba(0, 229, 255, 0.2)',
-            border: '1px solid rgba(0, 229, 255, 0.4)',
-            borderRadius: 4,
-            padding: '2px 5px',
-            fontSize: 9,
-            color: 'var(--accent-biolum)',
-            fontFamily: 'var(--font-mono)',
-          }}>
-            生魚片✓
-          </div>
-        )}
+        {/* Photo count badge */}
       </div>
 
       {/* Info */}
@@ -149,7 +136,7 @@ export default function AtlasPage() {
 
     let query = supabase
       .from('fishes')
-      .select('id, name, scientific_name, category, market_price, sashimi_grade, photos')
+      .select('id, name, scientific_name, category, market_price, photos')
       .order('created_at', { ascending: false })
       .range(from, to)
 

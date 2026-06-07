@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { proxyImage } from '../lib/imageProxy'
 
 export default function SharePage() {
   const { id } = useParams()
@@ -61,7 +62,7 @@ export default function SharePage() {
       {/* Photo */}
       {fish.photos?.length > 0 && (
         <div style={{ position: 'relative', aspectRatio: '4/3', background: 'var(--bg-surface)' }}>
-          <img src={fish.photos[photoIdx]} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <img src={proxyImage(fish.photos[photoIdx])} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           {fish.photos.length > 1 && (
             <div style={{
               position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)',
