@@ -20,10 +20,11 @@ export default async function handler(req, res) {
   "cooking_methods": "建議料理方式（3-5種）",
   "habitat_depth": 數字（主要棲息深度，公尺，若不確定填null）,
   "description": "額外補充資訊（季節性、產地、特色等）",
-  "latin_name": "拉丁學名（用於圖片搜尋，例：Sebastiscus marmoratus）"
+  "latin_name": "拉丁學名（例：Sebastiscus marmoratus）"
 }`
 
   try {
+    // Step 1: Get fish info
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -45,24 +46,59 @@ export default async function handler(req, res) {
     const clean = text.replace(/```json|```/g, '').trim()
     const parsed = JSON.parse(clean)
 
-    // Build Wikipedia image URL from latin name
+    // Step 2: Try multiple image sources
     let suggested_image = null
-    if (parsed.latin_name) {
-      const wikiTitle = parsed.latin_name.replace(/ /g, '_')
+    const latinName = parsed.latin_name
+
+    if (latinName) {
+      // Try iNaturalist first
       try {
-        const wikiRes = await fetch(
-          `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(wikiTitle)}`
+        const inatRes = await fetch(
+          `https://api.inaturalist.org/v1/taxa?q=${encodeURIComponent(latinName)}&rank=species&per_page=1`
         )
-        const wikiData = await wikiRes.json()
-        if (wikiData.thumbnail?.source) {
-          // Get higher resolution version
-          suggested_image = wikiData.thumbnail.source.replace(/\/\d+px-/, '/400px-')
+        const inatData = await inatRes.json()
+        const taxon = inatData.results?.[0]
+        if (taxon?.default_photo?.medium_url) {
+          suggested_image = taxon.default_photo.medium_url
         }
       } catch (_) {}
+
+      // Fallback: Wikipedia
+      if (!suggested_image) {
+        try {
+          const wikiTitle = latinName.replace(/ /g, '_')
+          const wikiRes = await fetch(
+            `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(wikiTitle)}`
+          )
+          const wikiData = await wikiRes.json()
+          if (wikiData.thumbnail?.source) {
+            suggested_image = wikiData.thumbnail.source.replace(/\/\d+px-/, '/400px-')
+          }
+        } catch (_) {}
+      }
+
+      // Fallback: FishBase via GBIF
+      if (!suggested_image) {
+        try {
+          const gbifRes = await fetch(
+            `https://api.gbif.org/v1/species?name=${encodeURIComponent(latinName)}&limit=1`
+          )
+          const gbifData = await gbifRes.json()
+          const key = gbifData.results?.[0]?.key
+          if (key) {
+            const mediaRes = await fetch(
+              `https://api.gbif.org/v1/occurrence/search?taxonKey=${key}&mediaType=StillImage&limit=1`
+            )
+            const mediaData = await mediaRes.json()
+            const img = mediaData.results?.[0]?.media?.[0]?.identifier
+            if (img) suggested_image = img
+          }
+        } catch (_) {}
+      }
     }
 
     const { latin_name, ...rest } = parsed
-    return res.status(200).json({ ...rest, suggested_image })
+    return res.status(200).json({ ...rest, suggested_image, latin_name })
   } catch (e) {
     return res.status(500).json({ error: e.message })
   }
