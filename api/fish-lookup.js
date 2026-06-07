@@ -20,11 +20,10 @@ export default async function handler(req, res) {
   "cooking_methods": "建議料理方式（3-5種）",
   "habitat_depth": 數字（主要棲息深度，公尺，若不確定填null）,
   "description": "額外補充資訊（季節性、產地、特色等）",
-  "image_search_query": "英文搜尋關鍵字，用於找這種魚的清晰照片（例：Sebastiscus marmoratus fish）"
+  "latin_name": "拉丁學名（用於圖片搜尋，例：Sebastiscus marmoratus）"
 }`
 
   try {
-    // Step 1: Get fish info from Claude
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -46,42 +45,24 @@ export default async function handler(req, res) {
     const clean = text.replace(/```json|```/g, '').trim()
     const parsed = JSON.parse(clean)
 
-    // Step 2: Search for fish image using Claude with web search
-    const imageQuery = parsed.image_search_query || `${name} fish`
-    const imageSearchRes = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-opus-4-5',
-        max_tokens: 512,
-        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-        messages: [{
-          role: 'user',
-          content: `Search for a clear photo of "${imageQuery}". Find a direct image URL (ending in .jpg, .jpeg, or .png) from Wikipedia, iNaturalist, or fishbase.org. Return ONLY the direct image URL, nothing else.`
-        }],
-      }),
-    })
-
-    const imageData = await imageSearchRes.json()
-    let imageUrl = null
-
-    if (imageData.content) {
-      for (const block of imageData.content) {
-        if (block.type === 'text') {
-          const urlMatch = block.text.match(/https?:\/\/[^\s"'<>]+\.(?:jpg|jpeg|png)/i)
-          if (urlMatch) {
-            imageUrl = urlMatch[0]
-            break
-          }
+    // Build Wikipedia image URL from latin name
+    let suggested_image = null
+    if (parsed.latin_name) {
+      const wikiTitle = parsed.latin_name.replace(/ /g, '_')
+      try {
+        const wikiRes = await fetch(
+          `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(wikiTitle)}`
+        )
+        const wikiData = await wikiRes.json()
+        if (wikiData.thumbnail?.source) {
+          // Get higher resolution version
+          suggested_image = wikiData.thumbnail.source.replace(/\/\d+px-/, '/400px-')
         }
-      }
+      } catch (_) {}
     }
 
-    return res.status(200).json({ ...parsed, suggested_image: imageUrl })
+    const { latin_name, ...rest } = parsed
+    return res.status(200).json({ ...rest, suggested_image })
   } catch (e) {
     return res.status(500).json({ error: e.message })
   }
