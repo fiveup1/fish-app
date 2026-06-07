@@ -8,9 +8,8 @@ const INFO_ROWS = [
   { key: 'flavor', label: '味道', icon: '👅' },
   { key: 'texture', label: '肉質', icon: '✋' },
   { key: 'market_price', label: '市場價格', icon: '💰', suffix: ' 元/斤' },
+  { key: 'common_names', label: '常見別名', icon: '🏷' },
   { key: 'cooking_methods', label: '料理方式', icon: '🍳' },
-  { key: 'aging_days', label: '熟成建議', icon: '⏱', suffix: ' 天' },
-  { key: 'sashimi_grade', label: '生魚片', icon: '🍣', boolean: true },
   { key: 'habitat_depth', label: '棲息深度', icon: '🌊', suffix: ' m' },
   { key: 'description', label: '備註', icon: '📝' },
 ]

@@ -12,18 +12,19 @@ export default async function handler(req, res) {
 
 只回傳 JSON 物件，不要有其他文字，格式如下：
 {
-  "scientific_name": "學名（拉丁文）",
+  "scientific_name": "中文學名（正式中文名稱）",
+  "common_names": "台灣常見別名，用逗號分隔（例：石狗公、石頭魚、虎魚）",
   "flavor": "味道描述（2-3句）",
   "texture": "肉質描述（1-2句）",
   "market_price": 數字（台幣每台斤，若不確定填null）,
   "cooking_methods": "建議料理方式（3-5種）",
-  "aging_days": 數字（熟成建議天數，若不適合填0）,
-  "sashimi_grade": true或false（是否適合生食）,
   "habitat_depth": 數字（主要棲息深度，公尺，若不確定填null）,
-  "description": "額外補充資訊（季節性、產地、特色等）"
+  "description": "額外補充資訊（季節性、產地、特色等）",
+  "image_search_query": "英文搜尋關鍵字，用於找這種魚的清晰照片（例：Sebastiscus marmoratus fish）"
 }`
 
   try {
+    // Step 1: Get fish info from Claude
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -45,7 +46,42 @@ export default async function handler(req, res) {
     const clean = text.replace(/```json|```/g, '').trim()
     const parsed = JSON.parse(clean)
 
-    return res.status(200).json(parsed)
+    // Step 2: Search for fish image using Claude with web search
+    const imageQuery = parsed.image_search_query || `${name} fish`
+    const imageSearchRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-opus-4-5',
+        max_tokens: 512,
+        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+        messages: [{
+          role: 'user',
+          content: `Search for a clear photo of "${imageQuery}". Find a direct image URL (ending in .jpg, .jpeg, or .png) from Wikipedia, iNaturalist, or fishbase.org. Return ONLY the direct image URL, nothing else.`
+        }],
+      }),
+    })
+
+    const imageData = await imageSearchRes.json()
+    let imageUrl = null
+
+    if (imageData.content) {
+      for (const block of imageData.content) {
+        if (block.type === 'text') {
+          const urlMatch = block.text.match(/https?:\/\/[^\s"'<>]+\.(?:jpg|jpeg|png)/i)
+          if (urlMatch) {
+            imageUrl = urlMatch[0]
+            break
+          }
+        }
+      }
+    }
+
+    return res.status(200).json({ ...parsed, suggested_image: imageUrl })
   } catch (e) {
     return res.status(500).json({ error: e.message })
   }
