@@ -16,7 +16,7 @@ const CATEGORIES = [
 
 function FishCard({ fish, onClick }) {
   const [imgLoaded, setImgLoaded] = useState(false)
-  const primaryPhoto = proxyImage(fish.photos?.[0])
+  const primaryPhoto = proxyImage(fish.cover_photo)
 
   return (
     <div
@@ -136,7 +136,7 @@ export default function AtlasPage() {
 
     let query = supabase
       .from('fishes')
-      .select('id, name, scientific_name, category, market_price, photos')
+      .select('id, name, scientific_name, category, market_price, cover_photo')
       .order('created_at', { ascending: false })
       .range(from, to)
 
