@@ -35,50 +35,45 @@ const S = {
 const focusIn  = e => e.target.style.borderColor = 'var(--border-active)'
 const focusOut = e => e.target.style.borderColor = 'var(--border-subtle)'
 
-// ── AI Preview 確認 overlay ───────────────────────────────
+// ── PreviewOverlay ────────────────────────────────────────
 function PreviewOverlay({ name, fields, category, onConfirm, onCancel, onRetry }) {
-  const [cat, setCat] = useState(category)
+  const [cat, setCat]           = useState(category)
   const [editFields, setEditFields] = useState(fields)
-
-  const rows = Object.entries(FIELD_LABELS).filter(([key]) => editFields[key] != null && editFields[key] !== '')
 
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 80,
-      background: 'rgba(8,20,46,0.96)',
+      background: 'rgba(8,20,46,0.98)',
       display: 'flex', flexDirection: 'column',
       animation: 'bubbleUp 0.25s var(--ease-ocean)',
-      overflowY: 'auto',
     }}>
-      {/* Header */}
+      {/* ── Sticky Header ── */}
       <div style={{
         paddingTop: 'calc(var(--safe-top) + 10px)',
         padding: 'calc(var(--safe-top) + 10px) 16px 14px',
-        background: 'rgba(8,20,46,0.95)',
+        background: 'rgba(8,20,46,0.97)',
         backdropFilter: 'blur(20px)',
         borderBottom: '1px solid var(--border-subtle)',
-        position: 'sticky', top: 0, zIndex: 10,
         flexShrink: 0,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-          <div style={{
-            width: 8, height: 8, borderRadius: '50%',
-            background: 'var(--accent-sky)',
-            boxShadow: '0 0 8px rgba(168,192,232,0.7)',
-          }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+          <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent-sky)', boxShadow: '0 0 8px rgba(168,192,232,0.7)' }} />
           <span style={{ fontSize: 11, color: 'var(--accent-sky)', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em' }}>
             AI 查詢結果 — 請確認資料
           </span>
         </div>
-        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700 }}>{fields.matched_name || name}</h2>
-        {fields.matched_name && fields.matched_name !== name && (
-          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-            你輸入「{name}」→ AI 判斷為「{fields.matched_name}」
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700 }}>
+          {editFields.matched_name || name}
+        </h2>
+        {editFields.matched_name && editFields.matched_name !== name && (
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 3 }}>
+            你輸入「{name}」→ AI 判斷為「{editFields.matched_name}」
           </p>
         )}
       </div>
 
-      <div style={{ padding: '16px 16px 32px', flex: 1 }}>
+      {/* ── Scrollable content ── */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 0' }}>
         {/* Category */}
         <div style={{ marginBottom: 20 }}>
           <label style={S.label}>分類</label>
@@ -95,7 +90,7 @@ function PreviewOverlay({ name, fields, category, onConfirm, onCancel, onRetry }
           </div>
         </div>
 
-        {/* Fields — editable */}
+        {/* Fields */}
         {Object.entries(FIELD_LABELS).map(([key, label]) => (
           <div key={key} style={{ marginBottom: 14 }}>
             <label style={S.label}>{label}</label>
@@ -116,39 +111,50 @@ function PreviewOverlay({ name, fields, category, onConfirm, onCancel, onRetry }
           </div>
         ))}
 
-        {/* Action buttons */}
-        <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-          <button
-            onClick={onCancel}
-            style={{
-              flex: 1, padding: '13px',
-              background: 'rgba(168,192,232,0.06)',
-              border: '1px solid var(--border-mid)',
-              borderRadius: 12, fontSize: 14, fontWeight: 600,
-              color: 'var(--text-secondary)',
-            }}
-          >✕ 取消不加入</button>
-          <button
-            onClick={onRetry}
-            style={{
-              padding: '13px 18px',
-              background: 'rgba(168,192,232,0.08)',
-              border: '1px solid var(--border-mid)',
-              borderRadius: 12, fontSize: 14, fontWeight: 600,
-              color: 'var(--text-secondary)',
-            }}
-          >↩ 重查</button>
-          <button
-            onClick={() => onConfirm(editFields, cat)}
-            style={{
-              flex: 1, padding: '13px',
-              background: 'linear-gradient(135deg, #4a72c4, #a8c0e8)',
-              color: 'var(--bg-abyss)',
-              borderRadius: 12, fontSize: 14, fontWeight: 700,
-              boxShadow: '0 4px 16px rgba(74,114,196,0.4)',
-            }}
-          >✓ 確認加入圖鑑</button>
-        </div>
+        {/* bottom padding so last field isn't hidden by sticky buttons */}
+        <div style={{ height: 16 }} />
+      </div>
+
+      {/* ── Sticky action bar at bottom ── */}
+      <div style={{
+        flexShrink: 0,
+        padding: '12px 16px',
+        paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
+        background: 'rgba(8,20,46,0.97)',
+        backdropFilter: 'blur(20px)',
+        borderTop: '1px solid var(--border-subtle)',
+        display: 'flex', gap: 8,
+      }}>
+        <button
+          onClick={onCancel}
+          style={{
+            flex: 1, padding: '13px 8px',
+            background: 'rgba(168,192,232,0.06)',
+            border: '1px solid var(--border-mid)',
+            borderRadius: 12, fontSize: 13, fontWeight: 600,
+            color: 'var(--text-secondary)',
+          }}
+        >✕ 取消</button>
+        <button
+          onClick={onRetry}
+          style={{
+            padding: '13px 16px',
+            background: 'rgba(168,192,232,0.08)',
+            border: '1px solid var(--border-mid)',
+            borderRadius: 12, fontSize: 13, fontWeight: 600,
+            color: 'var(--text-secondary)',
+          }}
+        >↩ 重查</button>
+        <button
+          onClick={() => onConfirm(editFields, cat)}
+          style={{
+            flex: 2, padding: '13px 8px',
+            background: 'linear-gradient(135deg, #4a72c4, #a8c0e8)',
+            color: 'var(--bg-abyss)',
+            borderRadius: 12, fontSize: 13, fontWeight: 700,
+            boxShadow: '0 4px 16px rgba(74,114,196,0.4)',
+          }}
+        >✓ 確認加入圖鑑</button>
       </div>
     </div>
   )
@@ -156,18 +162,15 @@ function PreviewOverlay({ name, fields, category, onConfirm, onCancel, onRetry }
 
 // ── Main AddPage ──────────────────────────────────────────
 export default function AddPage() {
-  const navigate    = useNavigate()
+  const navigate     = useNavigate()
   const fileInputRef = useRef(null)
 
-  const [name, setName]         = useState('')
-  const [category, setCategory] = useState('魚')
-  const [photos, setPhotos]     = useState([])
+  const [name, setName]           = useState('')
+  const [photos, setPhotos]       = useState([])
   const [aiLoading, setAiLoading] = useState(false)
   const [saving, setSaving]       = useState(false)
   const [error, setError]         = useState('')
-
-  // Preview state
-  const [preview, setPreview] = useState(null) // null | { fields, category }
+  const [preview, setPreview]     = useState(null)
 
   async function handleAILookup() {
     if (!name.trim()) return
@@ -182,12 +185,8 @@ export default function AddPage() {
       if (data.error) throw new Error(data.error)
 
       const { latin_name, ...rest } = data
-
-      // 分類推斷：規則優先，AI 備援
       const ruleCategory = inferCategory(name.trim()) || inferCategory(rest.matched_name || '')
       const resolved     = ruleCategory || rest.category || '其他'
-
-      setCategory(resolved)
       setPreview({ fields: { ...rest }, category: resolved })
     } catch (e) {
       setError('AI 查詢失敗：' + e.message)
@@ -198,8 +197,9 @@ export default function AddPage() {
 
   function handlePhotoSelect(e) {
     const files = Array.from(e.target.files)
-    const remaining = 10 - photos.length
-    const toAdd = files.slice(0, remaining).map(f => ({ file: f, preview: URL.createObjectURL(f) }))
+    const toAdd = files.slice(0, 10 - photos.length).map(f => ({
+      file: f, preview: URL.createObjectURL(f),
+    }))
     setPhotos(prev => [...prev, ...toAdd])
   }
 
@@ -213,26 +213,25 @@ export default function AddPage() {
   }
 
   async function handleConfirm(confirmedFields, confirmedCat) {
-    setPreview(null)
-    setSaving(true); setError('')
+    setPreview(null); setSaving(true); setError('')
     try {
       const saveName = confirmedFields.matched_name || name.trim()
       const { data: fish, error: insertErr } = await supabase
         .from('fishes')
         .insert({
-          name: saveName,
-          category: confirmedCat,
-          scientific_name:  confirmedFields.scientific_name  || null,
-          common_names:     confirmedFields.common_names     || null,
-          flavor:           confirmedFields.flavor           || null,
-          texture:          confirmedFields.texture          || null,
-          market_price:     confirmedFields.market_price     ? parseFloat(confirmedFields.market_price)  : null,
-          cooking_methods:  confirmedFields.cooking_methods  || null,
-          habitat_depth:    confirmedFields.habitat_depth    ? parseFloat(confirmedFields.habitat_depth) : null,
-          description:      confirmedFields.description      || null,
+          name:            saveName,
+          category:        confirmedCat,
+          scientific_name: confirmedFields.scientific_name  || null,
+          common_names:    confirmedFields.common_names     || null,
+          flavor:          confirmedFields.flavor           || null,
+          texture:         confirmedFields.texture          || null,
+          market_price:    confirmedFields.market_price     ? parseFloat(confirmedFields.market_price)  : null,
+          cooking_methods: confirmedFields.cooking_methods  || null,
+          habitat_depth:   confirmedFields.habitat_depth    ? parseFloat(confirmedFields.habitat_depth) : null,
+          description:     confirmedFields.description      || null,
           cover_photo:    null,
           ai_cover_photo: null,
-          photos: [],
+          photos:         [],
         })
         .select().single()
       if (insertErr) throw insertErr
@@ -246,10 +245,8 @@ export default function AddPage() {
           const { data } = supabase.storage.from('fish-photos').getPublicUrl(path)
           urls.push(data.publicUrl)
         }
-        // First photo becomes cover
         await supabase.from('fishes').update({ photos: urls, cover_photo: urls[0] }).eq('id', fish.id)
       }
-
       navigate(`/fish/${fish.id}`)
     } catch (e) {
       setError('儲存失敗：' + e.message)
@@ -261,7 +258,6 @@ export default function AddPage() {
   return (
     <div style={{ height: '100%', overflowY: 'auto', position: 'relative', zIndex: 1 }}>
 
-      {/* AI Preview overlay */}
       {preview && (
         <PreviewOverlay
           name={name}
@@ -298,7 +294,7 @@ export default function AddPage() {
         <section style={{ marginBottom: 20 }}>
           <label style={S.label}>魚種名稱</label>
           <p style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 8, lineHeight: 1.6 }}>
-            輸入你知道的名字，例如市場俗名、台語名都可以
+            輸入市場俗名、台語名都可以，AI 會搜網路比對
           </p>
           <div style={{ display: 'flex', gap: 8 }}>
             <input
@@ -313,7 +309,7 @@ export default function AddPage() {
               onClick={handleAILookup}
               disabled={aiLoading || !name.trim()}
               style={{
-                padding: '0 14px',
+                padding: '0 14px', minWidth: 110,
                 background: aiLoading
                   ? 'rgba(26,52,112,0.6)'
                   : 'linear-gradient(135deg, #4a72c4, #a8c0e8)',
@@ -321,25 +317,23 @@ export default function AddPage() {
                 borderRadius: 10, fontSize: 12, fontWeight: 700,
                 whiteSpace: 'nowrap', transition: 'all 0.2s',
                 border: aiLoading ? '1px solid var(--border-subtle)' : 'none',
-                letterSpacing: '0.03em',
                 boxShadow: aiLoading ? 'none' : '0 2px 12px rgba(74,114,196,0.45)',
-                minWidth: 110,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
               }}
             >
               {aiLoading
-                ? <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(74,114,196,0.5)', borderTopColor: 'var(--bg-abyss)', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
-                    查詢中
-                  </span>
+                ? <><span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(74,114,196,0.5)', borderTopColor: 'transparent', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />搜尋中</>
                 : '✦ AI 辨識加入魚池'}
             </button>
           </div>
           {error && (
-            <div style={{ marginTop: 10, padding: '9px 12px', background: 'rgba(255,128,102,0.08)', border: '1px solid rgba(255,128,102,0.3)', borderRadius: 8, color: 'var(--accent-coral)', fontSize: 12 }}>{error}</div>
+            <div style={{ marginTop: 10, padding: '9px 12px', background: 'rgba(255,128,102,0.08)', border: '1px solid rgba(255,128,102,0.3)', borderRadius: 8, color: 'var(--accent-coral)', fontSize: 12 }}>
+              {error}
+            </div>
           )}
         </section>
 
-        {/* My Photos */}
+        {/* Photos */}
         <section style={{ marginBottom: 24 }}>
           <label style={{ ...S.label, marginBottom: 4 }}>
             我的照片 <span style={{ color: 'var(--text-dim)', fontWeight: 400 }}>({photos.length}/10)</span>
@@ -354,10 +348,8 @@ export default function AddPage() {
                 <div key={i} style={{ position: 'relative', aspectRatio: '1', borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
                   <img src={p.preview} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   <button onClick={() => removePhoto(i)} style={{
-                    position: 'absolute', top: 5, right: 5,
-                    width: 22, height: 22, borderRadius: '50%',
-                    background: 'rgba(8,20,46,0.85)',
-                    border: '1px solid rgba(255,128,102,0.5)',
+                    position: 'absolute', top: 5, right: 5, width: 22, height: 22, borderRadius: '50%',
+                    background: 'rgba(8,20,46,0.85)', border: '1px solid rgba(255,128,102,0.5)',
                     color: 'var(--accent-coral)', fontSize: 13,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>×</button>
@@ -383,17 +375,12 @@ export default function AddPage() {
           )}
         </section>
 
-        {/* Hint */}
-        <div style={{
-          padding: '12px 14px', borderRadius: 10,
-          background: 'rgba(74,114,196,0.08)', border: '1px solid rgba(74,114,196,0.18)',
-          fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.7,
-        }}>
+        {/* Usage hint */}
+        <div style={{ padding: '12px 14px', borderRadius: 10, background: 'rgba(74,114,196,0.08)', border: '1px solid rgba(74,114,196,0.18)', fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.8 }}>
           <span style={{ color: 'var(--accent-sky)', fontWeight: 600 }}>使用說明</span><br />
-          1. 輸入魚名 → 點「AI 辨識加入魚池」<br />
-          2. 預覽 AI 查到的資料，可直接修改欄位<br />
-          3. 確認正確後按「確認加入圖鑑」儲存<br />
-          4. 若資料不對，按「取消」或「重查」
+          1. 輸入魚名 → 點「AI 辨識加入魚池」（AI 會搜網路）<br />
+          2. 預覽資料，可直接修改任何欄位<br />
+          3. 確認正確 → 儲存 ／ 不對 → 取消或重查
         </div>
 
         {saving && (
