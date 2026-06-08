@@ -5,11 +5,19 @@ const tabs = [
     path: '/',
     label: '圖鑑',
     icon: (active) => (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <rect x="3" y="3" width="8" height="8" rx="2" fill={active ? '#00e5ff' : 'none'} stroke={active ? '#00e5ff' : '#4a7a94'} strokeWidth="1.5"/>
-        <rect x="13" y="3" width="8" height="8" rx="2" fill={active ? '#00e5ff22' : 'none'} stroke={active ? '#00e5ff' : '#4a7a94'} strokeWidth="1.5"/>
-        <rect x="3" y="13" width="8" height="8" rx="2" fill={active ? '#00e5ff22' : 'none'} stroke={active ? '#00e5ff' : '#4a7a94'} strokeWidth="1.5"/>
-        <rect x="13" y="13" width="8" height="8" rx="2" fill={active ? '#00e5ff22' : 'none'} stroke={active ? '#00e5ff' : '#4a7a94'} strokeWidth="1.5"/>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <rect x="3"  y="3"  width="8" height="8" rx="2"
+          fill={active ? 'rgba(168,192,232,0.2)' : 'none'}
+          stroke={active ? '#a8c0e8' : '#3a5888'} strokeWidth="1.5"/>
+        <rect x="13" y="3"  width="8" height="8" rx="2"
+          fill={active ? 'rgba(168,192,232,0.1)' : 'none'}
+          stroke={active ? '#a8c0e8' : '#3a5888'} strokeWidth="1.5"/>
+        <rect x="3"  y="13" width="8" height="8" rx="2"
+          fill={active ? 'rgba(168,192,232,0.1)' : 'none'}
+          stroke={active ? '#a8c0e8' : '#3a5888'} strokeWidth="1.5"/>
+        <rect x="13" y="13" width="8" height="8" rx="2"
+          fill='none'
+          stroke={active ? '#a8c0e8' : '#3a5888'} strokeWidth="1.5"/>
       </svg>
     ),
   },
@@ -17,9 +25,12 @@ const tabs = [
     path: '/add',
     label: '新增',
     icon: (active) => (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="12" r="9" fill={active ? '#00e5ff' : 'none'} stroke={active ? '#00e5ff' : '#4a7a94'} strokeWidth="1.5"/>
-        <path d="M12 8v8M8 12h8" stroke={active ? '#020d18' : '#4a7a94'} strokeWidth="2" strokeLinecap="round"/>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="9"
+          fill={active ? 'rgba(168,192,232,0.2)' : 'none'}
+          stroke={active ? '#a8c0e8' : '#3a5888'} strokeWidth="1.5"/>
+        <path d="M12 8v8M8 12h8"
+          stroke={active ? '#f0f6ff' : '#3a5888'} strokeWidth="2" strokeLinecap="round"/>
       </svg>
     ),
   },
@@ -27,10 +38,13 @@ const tabs = [
     path: '/depth',
     label: '深度圖',
     icon: (active) => (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <path d="M3 6c3 0 3 3 6 3s3-3 6-3 3 3 6 3" stroke={active ? '#00e5ff' : '#4a7a94'} strokeWidth="1.5" strokeLinecap="round"/>
-        <path d="M3 12c3 0 3 3 6 3s3-3 6-3 3 3 6 3" stroke={active ? '#00e5ff' : '#4a7a94'} strokeWidth="1.5" strokeLinecap="round" opacity="0.6"/>
-        <path d="M3 18c3 0 3 3 6 3s3-3 6-3 3 3 6 3" stroke={active ? '#00e5ff' : '#4a7a94'} strokeWidth="1.5" strokeLinecap="round" opacity="0.3"/>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <path d="M2 7c3.5 0 3.5 4 7 4s3.5-4 7-4 3.5 4 6 4"
+          stroke={active ? '#a8c0e8' : '#3a5888'} strokeWidth="1.5" strokeLinecap="round"/>
+        <path d="M2 13c3.5 0 3.5 4 7 4s3.5-4 7-4 3.5 4 6 4"
+          stroke={active ? '#a8c0e8' : '#3a5888'} strokeWidth="1.5" strokeLinecap="round" opacity="0.55"/>
+        <path d="M2 19c3.5 0 3.5 3 7 3s3.5-3 7-3 3.5 3 6 3"
+          stroke={active ? '#a8c0e8' : '#3a5888'} strokeWidth="1.5" strokeLinecap="round" opacity="0.25"/>
       </svg>
     ),
   },
@@ -40,19 +54,16 @@ export default function TabBar() {
   const location = useLocation()
   const navigate = useNavigate()
 
-  // Hide tab bar on detail and share pages
   if (location.pathname.startsWith('/fish/') || location.pathname.startsWith('/share/')) return null
 
   return (
     <nav style={{
-      position: 'relative',
-      zIndex: 100,
-      display: 'flex',
-      alignItems: 'stretch',
-      background: 'rgba(2, 13, 24, 0.95)',
-      backdropFilter: 'blur(20px)',
-      WebkitBackdropFilter: 'blur(20px)',
-      borderTop: '1px solid rgba(0, 229, 255, 0.1)',
+      position: 'relative', zIndex: 100,
+      display: 'flex', alignItems: 'stretch',
+      background: 'rgba(8, 20, 46, 0.96)',
+      backdropFilter: 'blur(24px)',
+      WebkitBackdropFilter: 'blur(24px)',
+      borderTop: '1px solid rgba(168, 192, 232, 0.12)',
       paddingBottom: 'env(safe-area-inset-bottom, 20px)',
     }}>
       {tabs.map(tab => {
@@ -63,23 +74,30 @@ export default function TabBar() {
             onClick={() => navigate(tab.path)}
             style={{
               flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 4,
-              padding: '10px 0',
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center',
+              gap: 4, padding: '10px 0',
               background: 'none',
+              opacity: active ? 1 : 0.55,
               transition: 'opacity 0.2s',
-              opacity: active ? 1 : 0.6,
+              position: 'relative',
             }}
           >
+            {active && (
+              <div style={{
+                position: 'absolute', top: 0, left: '50%',
+                transform: 'translateX(-50%)',
+                width: 32, height: 2,
+                background: 'linear-gradient(90deg, transparent, #a8c0e8, transparent)',
+                borderRadius: 2,
+              }} />
+            )}
             {tab.icon(active)}
             <span style={{
               fontSize: 10,
               fontFamily: 'var(--font-body)',
-              color: active ? 'var(--accent-biolum)' : 'var(--text-muted)',
-              letterSpacing: '0.05em',
+              color: active ? 'var(--accent-sky)' : 'var(--text-dim)',
+              letterSpacing: '0.06em',
               fontWeight: active ? 500 : 400,
             }}>
               {tab.label}
