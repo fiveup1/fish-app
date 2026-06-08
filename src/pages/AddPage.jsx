@@ -37,46 +37,80 @@ const focusOut = e => e.target.style.borderColor = 'var(--border-subtle)'
 
 /* ── PreviewOverlay ─────────────────────────────────────── */
 function PreviewOverlay({ name, fields, category, onConfirm, onCancel, onRetry }) {
-  const [cat, setCat]           = useState(category)
+  const [cat, setCat]               = useState(category)
   const [editFields, setEditFields] = useState(fields)
+
+  const wikiTitle = fields.wiki_title
+  const wikiUrl   = fields.wiki_url
 
   return (
     <div style={{
       position: 'fixed',
       top: 0, left: 0, right: 0, bottom: 0,
-      zIndex: 200,                          /* above TabBar (z=100) */
+      zIndex: 200,
       background: '#08142e',
       display: 'flex',
       flexDirection: 'column',
       animation: 'bubbleUp 0.25s var(--ease-ocean)',
     }}>
 
-      {/* Header */}
+      {/* ── Header ── */}
       <div style={{
-        paddingTop: 'calc(var(--safe-top) + 10px)',
         padding: 'calc(var(--safe-top) + 10px) 16px 14px',
         background: 'rgba(8,20,46,0.98)',
         backdropFilter: 'blur(20px)',
         borderBottom: '1px solid rgba(168,192,232,0.10)',
         flexShrink: 0,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
           <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#a8c0e8', boxShadow: '0 0 8px rgba(168,192,232,0.7)' }} />
-          <span style={{ fontSize: 11, color: '#a8c0e8', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em' }}>
+          <span style={{ fontSize: 11, color: '#a8c0e8', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em' }}>
             AI 查詢結果 — 請確認資料
           </span>
         </div>
-        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: '#f0f6ff' }}>
+
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: '#f0f6ff', marginBottom: 4 }}>
           {editFields.matched_name || name}
         </h2>
+
+        {/* 你輸入 → AI 判斷 */}
         {editFields.matched_name && editFields.matched_name !== name && (
-          <p style={{ fontSize: 12, color: '#6889b8', marginTop: 3 }}>
-            你輸入「{name}」→ AI 判斷為「{editFields.matched_name}」
+          <p style={{ fontSize: 12, color: '#6889b8', marginBottom: 5 }}>
+            你輸入「{name}」→ 對應到「{editFields.matched_name}」
           </p>
+        )}
+
+        {/* 維基百科來源 */}
+        {wikiTitle ? (
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 5,
+            background: 'rgba(168,192,232,0.08)',
+            border: '1px solid rgba(168,192,232,0.2)',
+            borderRadius: 6, padding: '3px 10px',
+          }}>
+            <span style={{ fontSize: 10, color: '#6889b8' }}>📖 維基百科來源：</span>
+            {wikiUrl ? (
+              <a href={wikiUrl} target="_blank" rel="noreferrer"
+                style={{ fontSize: 11, color: '#a8c0e8', textDecoration: 'underline', textDecorationStyle: 'dotted' }}>
+                {wikiTitle}
+              </a>
+            ) : (
+              <span style={{ fontSize: 11, color: '#a8c0e8' }}>{wikiTitle}</span>
+            )}
+          </div>
+        ) : (
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 5,
+            background: 'rgba(244,198,96,0.06)',
+            border: '1px solid rgba(244,198,96,0.18)',
+            borderRadius: 6, padding: '3px 10px',
+          }}>
+            <span style={{ fontSize: 10, color: '#f4c660' }}>⚠ 維基百科未找到，以 AI 知識為準</span>
+          </div>
         )}
       </div>
 
-      {/* Scrollable fields */}
+      {/* ── Scrollable fields ── */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 0' }}>
         {/* Category */}
         <div style={{ marginBottom: 20 }}>
@@ -94,6 +128,7 @@ function PreviewOverlay({ name, fields, category, onConfirm, onCancel, onRetry }
           </div>
         </div>
 
+        {/* All editable fields */}
         {Object.entries(FIELD_LABELS).map(([key, label]) => (
           <div key={key} style={{ marginBottom: 14 }}>
             <label style={S.label}>{label}</label>
@@ -118,13 +153,13 @@ function PreviewOverlay({ name, fields, category, onConfirm, onCancel, onRetry }
         <div style={{ height: 8 }} />
       </div>
 
-      {/* Bottom action bar — always visible above keyboard/tabbar */}
+      {/* ── Sticky bottom action bar ── */}
       <div style={{
         flexShrink: 0,
         display: 'flex',
         gap: 8,
         padding: '12px 16px',
-        paddingBottom: 'max(12px, env(safe-area-inset-bottom, 12px))',
+        paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))',
         background: 'rgba(8,20,46,0.98)',
         borderTop: '1px solid rgba(168,192,232,0.10)',
       }}>
@@ -276,7 +311,6 @@ export default function AddPage() {
 
       {/* Header */}
       <div style={{
-        paddingTop: 'calc(var(--safe-top) + 8px)',
         padding: 'calc(var(--safe-top) + 8px) 16px 14px',
         background: 'var(--grad-header)',
         backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
@@ -381,7 +415,7 @@ export default function AddPage() {
         <div style={{ padding: '12px 14px', borderRadius: 10, background: 'rgba(74,114,196,0.08)', border: '1px solid rgba(74,114,196,0.18)', fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.8 }}>
           <span style={{ color: 'var(--accent-sky)', fontWeight: 600 }}>使用說明</span><br />
           1. 輸入魚名 → 點「AI 辨識加入魚池」<br />
-          2. 預覽資料，可直接修改任何欄位<br />
+          2. 預覽時會顯示維基百科來源，可點連結核對<br />
           3. 確認正確 → 儲存 ／ 不對 → 取消或重查
         </div>
 
