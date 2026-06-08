@@ -1,16 +1,19 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { inferCategory } from '../lib/categoryRules'
+
+const CATEGORIES = ['魚', '蝦', '蟹', '貝', '花枝', '章魚', '其他']
 
 const FIELD_LABELS = {
-  scientific_name:  '中文學名',
-  common_names:     '常見別名',
-  flavor:           '味道描述',
-  texture:          '肉質',
-  market_price:     '市場價格（元/斤）',
-  cooking_methods:  '料理方式',
-  habitat_depth:    '棲息深度（公尺）',
-  description:      '備註說明',
+  scientific_name: '中文學名',
+  common_names:    '常見別名',
+  flavor:          '味道描述',
+  texture:         '肉質',
+  market_price:    '市場價格（元/斤）',
+  cooking_methods: '料理方式',
+  habitat_depth:   '棲息深度（公尺）',
+  description:     '備註說明',
 }
 
 const S = {
@@ -29,26 +32,25 @@ const S = {
     outline: 'none', transition: 'border-color 0.2s',
   },
 }
-
-function focusIn(e)  { e.target.style.borderColor = 'var(--border-active)' }
-function focusOut(e) { e.target.style.borderColor = 'var(--border-subtle)' }
+const focusIn  = e => e.target.style.borderColor = 'var(--border-active)'
+const focusOut = e => e.target.style.borderColor = 'var(--border-subtle)'
 
 export default function AddPage() {
   const navigate = useNavigate()
   const fileInputRef = useRef(null)
-  const [name, setName] = useState('')
-  const [fields, setFields] = useState({})
-  const [photos, setPhotos] = useState([])
+  const [name, setName]         = useState('')
+  const [category, setCategory] = useState('魚')
+  const [fields, setFields]     = useState({})
+  const [photos, setPhotos]     = useState([])
   const [aiLoading, setAiLoading] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
-  const [aiDone, setAiDone] = useState(false)
+  const [saving, setSaving]       = useState(false)
+  const [error, setError]         = useState('')
+  const [aiDone, setAiDone]       = useState(false)
   const [aiImageUrl, setAiImageUrl] = useState(null)
 
   async function handleAILookup() {
     if (!name.trim()) return
-    setAiLoading(true)
-    setError('')
+    setAiLoading(true); setError('')
     try {
       const res = await fetch('/api/fish-lookup', {
         method: 'POST',
@@ -58,7 +60,14 @@ export default function AddPage() {
       const data = await res.json()
       if (data.error) throw new Error(data.error)
       const { suggested_image, latin_name, ...rest } = data
-      setFields(rest)
+
+      // ── 分類推斷：規則優先，AI 備援 ──
+      const ruleCategory = inferCategory(name.trim())
+      const aiCategory   = rest.category
+      const resolved     = ruleCategory || aiCategory || '其他'
+      setCategory(resolved)
+
+      setFields({ ...rest, category: resolved })
       setAiDone(true)
       if (suggested_image) setAiImageUrl(suggested_image)
     } catch (e) {
@@ -71,7 +80,9 @@ export default function AddPage() {
   function handlePhotoSelect(e) {
     const files = Array.from(e.target.files)
     const remaining = 10 - photos.length
-    const toAdd = files.slice(0, remaining).map(file => ({ file, preview: URL.createObjectURL(file) }))
+    const toAdd = files.slice(0, remaining).map(file => ({
+      file, preview: URL.createObjectURL(file),
+    }))
     setPhotos(prev => [...prev, ...toAdd])
   }
 
@@ -92,11 +103,12 @@ export default function AddPage() {
         .from('fishes')
         .insert({
           name: name.trim(),
-          category: fields.category || '其他',
+          category,
           ...fields,
-          market_price: fields.market_price ? parseFloat(fields.market_price) : null,
+          market_price:  fields.market_price  ? parseFloat(fields.market_price)  : null,
           habitat_depth: fields.habitat_depth ? parseFloat(fields.habitat_depth) : null,
-          cover_photo: aiImageUrl || null,
+          cover_photo:    aiImageUrl || null,
+          ai_cover_photo: aiImageUrl || null,   // ← 永久保留 AI 圖
           photos: [],
         })
         .select().single()
@@ -105,7 +117,7 @@ export default function AddPage() {
       if (photos.length > 0) {
         const urls = []
         for (const { file } of photos) {
-          const ext = file.name.split('.').pop()
+          const ext  = file.name.split('.').pop()
           const path = `${fish.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
           await supabase.storage.from('fish-photos').upload(path, file)
           const { data } = supabase.storage.from('fish-photos').getPublicUrl(path)
@@ -142,7 +154,7 @@ export default function AddPage() {
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 700 }}>新增海鮮</h2>
       </div>
 
-      {/* AI cover image */}
+      {/* AI cover preview */}
       {aiImageUrl && (
         <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', background: 'var(--bg-surface)', overflow: 'hidden' }}>
           <img
@@ -161,14 +173,15 @@ export default function AddPage() {
       )}
 
       <div style={{ padding: '20px 16px 120px' }}>
+
         {/* Fish name + AI button */}
-        <section style={{ marginBottom: 24 }}>
+        <section style={{ marginBottom: 20 }}>
           <label style={S.label}>魚種名稱</label>
           <div style={{ display: 'flex', gap: 8 }}>
             <input
               value={name}
               onChange={e => setName(e.target.value)}
-              placeholder="例：黑鮪魚、劍蝦..."
+              placeholder="例：石狗公、黑鮪魚..."
               style={{ ...S.input, flex: 1 }}
               onFocus={focusIn} onBlur={focusOut}
               onKeyDown={e => e.key === 'Enter' && handleAILookup()}
@@ -188,10 +201,33 @@ export default function AddPage() {
                 letterSpacing: '0.03em',
                 boxShadow: aiLoading ? 'none' : '0 2px 12px rgba(74,114,196,0.45)',
               }}
-            >
-              {aiLoading ? '查詢中...' : '✦ AI 辨識加入魚池'}
-            </button>
+            >{aiLoading ? '查詢中...' : '✦ AI 辨識加入魚池'}</button>
           </div>
+        </section>
+
+        {/* Category — always visible, manually editable */}
+        <section style={{ marginBottom: 24 }}>
+          <label style={S.label}>分類</label>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {CATEGORIES.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setCategory(cat)}
+                style={{
+                  padding: '5px 14px', borderRadius: 20, fontSize: 13,
+                  background: category === cat ? 'rgba(168,192,232,0.2)' : 'rgba(26,52,112,0.45)',
+                  color: category === cat ? 'var(--accent-light)' : 'var(--text-muted)',
+                  border: `1px solid ${category === cat ? 'var(--border-active)' : 'var(--border-subtle)'}`,
+                  transition: 'all 0.18s', fontWeight: category === cat ? 600 : 400,
+                }}
+              >{cat}</button>
+            ))}
+          </div>
+          {aiDone && (
+            <p style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
+              ✦ AI 已自動推斷分類，可手動調整
+            </p>
+          )}
         </section>
 
         {/* AI Fields */}
@@ -208,12 +244,18 @@ export default function AddPage() {
               <div key={key} style={{ marginBottom: 14 }}>
                 <label style={S.label}>{label}</label>
                 {key === 'description' || key === 'cooking_methods' ? (
-                  <textarea value={fields[key] || ''} onChange={e => setFields(f => ({ ...f, [key]: e.target.value }))}
+                  <textarea
+                    value={fields[key] || ''}
+                    onChange={e => setFields(f => ({ ...f, [key]: e.target.value }))}
                     rows={3} style={{ ...S.input, resize: 'vertical', lineHeight: 1.7 }}
-                    onFocus={focusIn} onBlur={focusOut} />
+                    onFocus={focusIn} onBlur={focusOut}
+                  />
                 ) : (
-                  <input value={fields[key] || ''} onChange={e => setFields(f => ({ ...f, [key]: e.target.value }))}
-                    style={S.input} onFocus={focusIn} onBlur={focusOut} />
+                  <input
+                    value={fields[key] || ''}
+                    onChange={e => setFields(f => ({ ...f, [key]: e.target.value }))}
+                    style={S.input} onFocus={focusIn} onBlur={focusOut}
+                  />
                 )}
               </div>
             ))}
@@ -226,7 +268,6 @@ export default function AddPage() {
             我的照片 <span style={{ color: 'var(--text-dim)', fontWeight: 400 }}>({photos.length}/10)</span>
           </label>
           <input ref={fileInputRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handlePhotoSelect} />
-
           {photos.length > 0 ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
               {photos.map((p, i) => (
@@ -258,7 +299,6 @@ export default function AddPage() {
               border: '1px dashed var(--border-mid)',
               color: 'var(--text-muted)', fontSize: 13,
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7,
-              transition: 'border-color 0.2s',
             }}>
               <span style={{ fontSize: 28, opacity: 0.6 }}>📷</span>
               <span>點擊上傳照片（最多 10 張）</span>

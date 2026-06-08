@@ -1,5 +1,5 @@
 -- =============================================
--- 海鮮圖鑑 Supabase Schema
+-- 海鮮圖鑑 Supabase Schema  (v2 — adds ai_cover_photo)
 -- Run this in your Supabase SQL editor
 -- =============================================
 
@@ -11,8 +11,8 @@ CREATE TABLE IF NOT EXISTS fishes (
 
   -- Basic info
   name TEXT NOT NULL,
-  scientific_name TEXT,      -- 中文學名
-  common_names TEXT,         -- 常見別名（逗號分隔）
+  scientific_name TEXT,
+  common_names TEXT,
   category TEXT DEFAULT '魚',
 
   -- AI-generated fields
@@ -24,10 +24,15 @@ CREATE TABLE IF NOT EXISTS fishes (
 
   -- Media
   photos TEXT[] DEFAULT '{}',
+  cover_photo TEXT,        -- 目前封面（可能是 AI 圖或使用者照片）
+  ai_cover_photo TEXT,     -- AI 辨識到的原始封面，永久保留供切換
 
   -- Extra
   description TEXT
 );
+
+-- Add ai_cover_photo column if table already exists
+ALTER TABLE fishes ADD COLUMN IF NOT EXISTS ai_cover_photo TEXT;
 
 -- Auto-update updated_at
 CREATE OR REPLACE FUNCTION update_updated_at()
@@ -51,9 +56,9 @@ CREATE INDEX IF NOT EXISTS idx_fishes_created_at ON fishes(created_at DESC);
 
 -- RLS
 ALTER TABLE fishes ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Public read" ON fishes;
+DROP POLICY IF EXISTS "Public read"   ON fishes;
 DROP POLICY IF EXISTS "Public insert" ON fishes;
 DROP POLICY IF EXISTS "Public update" ON fishes;
-CREATE POLICY "Public read" ON fishes FOR SELECT USING (true);
+CREATE POLICY "Public read"   ON fishes FOR SELECT USING (true);
 CREATE POLICY "Public insert" ON fishes FOR INSERT WITH CHECK (true);
 CREATE POLICY "Public update" ON fishes FOR UPDATE USING (true);
