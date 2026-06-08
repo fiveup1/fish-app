@@ -34,6 +34,7 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json',
         'x-api-key': ANTHROPIC_API_KEY,
         'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'web-search-2025-03-05',
       },
       body: JSON.stringify({
         model: 'claude-opus-4-5',
@@ -47,15 +48,13 @@ export default async function handler(req, res) {
     if (data.error) throw new Error(data.error.message)
 
     // 收集所有 text block（web_search 會有多個 content block）
-    const fullText = data.content
+    const fullText = (data.content || [])
       .filter(b => b.type === 'text')
       .map(b => b.text)
       .join('\n')
 
-    const clean  = fullText.replace(/```json|```/g, '').trim()
-    // 取最後一個 JSON 物件（有時前面有說明文字）
-    const jsonMatch = clean.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) throw new Error('AI 未回傳有效 JSON')
+    const jsonMatch = fullText.match(/\{[\s\S]*\}/)
+    if (!jsonMatch) throw new Error('AI 未回傳有效 JSON，請重試')
     const parsed = JSON.parse(jsonMatch[0])
 
     const { latin_name, ...rest } = parsed
