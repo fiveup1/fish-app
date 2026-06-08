@@ -35,44 +35,48 @@ const S = {
 const focusIn  = e => e.target.style.borderColor = 'var(--border-active)'
 const focusOut = e => e.target.style.borderColor = 'var(--border-subtle)'
 
-// ── PreviewOverlay ────────────────────────────────────────
+/* ── PreviewOverlay ─────────────────────────────────────── */
 function PreviewOverlay({ name, fields, category, onConfirm, onCancel, onRetry }) {
   const [cat, setCat]           = useState(category)
   const [editFields, setEditFields] = useState(fields)
 
   return (
     <div style={{
-      position: 'fixed', inset: 0, zIndex: 80,
-      background: 'rgba(8,20,46,0.98)',
-      display: 'flex', flexDirection: 'column',
+      position: 'fixed',
+      top: 0, left: 0, right: 0, bottom: 0,
+      zIndex: 200,                          /* above TabBar (z=100) */
+      background: '#08142e',
+      display: 'flex',
+      flexDirection: 'column',
       animation: 'bubbleUp 0.25s var(--ease-ocean)',
     }}>
-      {/* ── Sticky Header ── */}
+
+      {/* Header */}
       <div style={{
         paddingTop: 'calc(var(--safe-top) + 10px)',
         padding: 'calc(var(--safe-top) + 10px) 16px 14px',
-        background: 'rgba(8,20,46,0.97)',
+        background: 'rgba(8,20,46,0.98)',
         backdropFilter: 'blur(20px)',
-        borderBottom: '1px solid var(--border-subtle)',
+        borderBottom: '1px solid rgba(168,192,232,0.10)',
         flexShrink: 0,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-          <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent-sky)', boxShadow: '0 0 8px rgba(168,192,232,0.7)' }} />
-          <span style={{ fontSize: 11, color: 'var(--accent-sky)', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em' }}>
+          <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#a8c0e8', boxShadow: '0 0 8px rgba(168,192,232,0.7)' }} />
+          <span style={{ fontSize: 11, color: '#a8c0e8', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em' }}>
             AI 查詢結果 — 請確認資料
           </span>
         </div>
-        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700 }}>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: '#f0f6ff' }}>
           {editFields.matched_name || name}
         </h2>
         {editFields.matched_name && editFields.matched_name !== name && (
-          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 3 }}>
+          <p style={{ fontSize: 12, color: '#6889b8', marginTop: 3 }}>
             你輸入「{name}」→ AI 判斷為「{editFields.matched_name}」
           </p>
         )}
       </div>
 
-      {/* ── Scrollable content ── */}
+      {/* Scrollable fields */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 0' }}>
         {/* Category */}
         <div style={{ marginBottom: 20 }}>
@@ -82,15 +86,14 @@ function PreviewOverlay({ name, fields, category, onConfirm, onCancel, onRetry }
               <button key={c} onClick={() => setCat(c)} style={{
                 padding: '5px 14px', borderRadius: 20, fontSize: 13,
                 background: cat === c ? 'rgba(168,192,232,0.2)' : 'rgba(26,52,112,0.45)',
-                color: cat === c ? 'var(--accent-light)' : 'var(--text-muted)',
-                border: `1px solid ${cat === c ? 'var(--border-active)' : 'var(--border-subtle)'}`,
+                color: cat === c ? '#d4e4f8' : '#6889b8',
+                border: `1px solid ${cat === c ? 'rgba(168,192,232,0.5)' : 'rgba(168,192,232,0.10)'}`,
                 transition: 'all 0.15s', fontWeight: cat === c ? 600 : 400,
               }}>{c}</button>
             ))}
           </div>
         </div>
 
-        {/* Fields */}
         {Object.entries(FIELD_LABELS).map(([key, label]) => (
           <div key={key} style={{ marginBottom: 14 }}>
             <label style={S.label}>{label}</label>
@@ -98,59 +101,61 @@ function PreviewOverlay({ name, fields, category, onConfirm, onCancel, onRetry }
               <textarea
                 value={editFields[key] || ''}
                 onChange={e => setEditFields(f => ({ ...f, [key]: e.target.value }))}
-                rows={3} style={{ ...S.input, resize: 'vertical', lineHeight: 1.7 }}
+                rows={3}
+                style={{ ...S.input, resize: 'vertical', lineHeight: 1.7 }}
                 onFocus={focusIn} onBlur={focusOut}
               />
             ) : (
               <input
                 value={editFields[key] || ''}
                 onChange={e => setEditFields(f => ({ ...f, [key]: e.target.value }))}
-                style={S.input} onFocus={focusIn} onBlur={focusOut}
+                style={S.input}
+                onFocus={focusIn} onBlur={focusOut}
               />
             )}
           </div>
         ))}
-
-        {/* bottom padding so last field isn't hidden by sticky buttons */}
-        <div style={{ height: 16 }} />
+        <div style={{ height: 8 }} />
       </div>
 
-      {/* ── Sticky action bar at bottom ── */}
+      {/* Bottom action bar — always visible above keyboard/tabbar */}
       <div style={{
         flexShrink: 0,
+        display: 'flex',
+        gap: 8,
         padding: '12px 16px',
-        paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
-        background: 'rgba(8,20,46,0.97)',
-        backdropFilter: 'blur(20px)',
-        borderTop: '1px solid var(--border-subtle)',
-        display: 'flex', gap: 8,
+        paddingBottom: 'max(12px, env(safe-area-inset-bottom, 12px))',
+        background: 'rgba(8,20,46,0.98)',
+        borderTop: '1px solid rgba(168,192,232,0.10)',
       }}>
         <button
           onClick={onCancel}
           style={{
-            flex: 1, padding: '13px 8px',
+            flex: 1, padding: '13px 6px',
             background: 'rgba(168,192,232,0.06)',
-            border: '1px solid var(--border-mid)',
+            border: '1px solid rgba(168,192,232,0.2)',
             borderRadius: 12, fontSize: 13, fontWeight: 600,
-            color: 'var(--text-secondary)',
+            color: '#a8c0e8',
           }}
         >✕ 取消</button>
+
         <button
           onClick={onRetry}
           style={{
-            padding: '13px 16px',
+            padding: '13px 14px',
             background: 'rgba(168,192,232,0.08)',
-            border: '1px solid var(--border-mid)',
+            border: '1px solid rgba(168,192,232,0.2)',
             borderRadius: 12, fontSize: 13, fontWeight: 600,
-            color: 'var(--text-secondary)',
+            color: '#a8c0e8',
           }}
         >↩ 重查</button>
+
         <button
           onClick={() => onConfirm(editFields, cat)}
           style={{
-            flex: 2, padding: '13px 8px',
+            flex: 2, padding: '13px 6px',
             background: 'linear-gradient(135deg, #4a72c4, #a8c0e8)',
-            color: 'var(--bg-abyss)',
+            color: '#08142e',
             borderRadius: 12, fontSize: 13, fontWeight: 700,
             boxShadow: '0 4px 16px rgba(74,114,196,0.4)',
           }}
@@ -160,7 +165,7 @@ function PreviewOverlay({ name, fields, category, onConfirm, onCancel, onRetry }
   )
 }
 
-// ── Main AddPage ──────────────────────────────────────────
+/* ── Main AddPage ─────────────────────────────────────────── */
 export default function AddPage() {
   const navigate     = useNavigate()
   const fileInputRef = useRef(null)
@@ -294,7 +299,7 @@ export default function AddPage() {
         <section style={{ marginBottom: 20 }}>
           <label style={S.label}>魚種名稱</label>
           <p style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 8, lineHeight: 1.6 }}>
-            輸入市場俗名、台語名都可以，AI 會搜網路比對
+            輸入市場俗名、台語名都可以
           </p>
           <div style={{ display: 'flex', gap: 8 }}>
             <input
@@ -310,9 +315,7 @@ export default function AddPage() {
               disabled={aiLoading || !name.trim()}
               style={{
                 padding: '0 14px', minWidth: 110,
-                background: aiLoading
-                  ? 'rgba(26,52,112,0.6)'
-                  : 'linear-gradient(135deg, #4a72c4, #a8c0e8)',
+                background: aiLoading ? 'rgba(26,52,112,0.6)' : 'linear-gradient(135deg, #4a72c4, #a8c0e8)',
                 color: aiLoading ? 'var(--text-muted)' : 'var(--bg-abyss)',
                 borderRadius: 10, fontSize: 12, fontWeight: 700,
                 whiteSpace: 'nowrap', transition: 'all 0.2s',
@@ -322,7 +325,7 @@ export default function AddPage() {
               }}
             >
               {aiLoading
-                ? <><span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(74,114,196,0.5)', borderTopColor: 'transparent', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />搜尋中</>
+                ? <><span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(74,114,196,0.5)', borderTopColor: 'transparent', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />查詢中</>
                 : '✦ AI 辨識加入魚池'}
             </button>
           </div>
@@ -338,7 +341,7 @@ export default function AddPage() {
           <label style={{ ...S.label, marginBottom: 4 }}>
             我的照片 <span style={{ color: 'var(--text-dim)', fontWeight: 400 }}>({photos.length}/10)</span>
           </label>
-          <p style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 8, lineHeight: 1.5 }}>
+          <p style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 8 }}>
             可先上傳照片，確認 AI 資料後一起儲存
           </p>
           <input ref={fileInputRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handlePhotoSelect} />
@@ -375,10 +378,9 @@ export default function AddPage() {
           )}
         </section>
 
-        {/* Usage hint */}
         <div style={{ padding: '12px 14px', borderRadius: 10, background: 'rgba(74,114,196,0.08)', border: '1px solid rgba(74,114,196,0.18)', fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.8 }}>
           <span style={{ color: 'var(--accent-sky)', fontWeight: 600 }}>使用說明</span><br />
-          1. 輸入魚名 → 點「AI 辨識加入魚池」（AI 會搜網路）<br />
+          1. 輸入魚名 → 點「AI 辨識加入魚池」<br />
           2. 預覽資料，可直接修改任何欄位<br />
           3. 確認正確 → 儲存 ／ 不對 → 取消或重查
         </div>

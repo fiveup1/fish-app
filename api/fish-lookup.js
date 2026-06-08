@@ -28,7 +28,6 @@ export default async function handler(req, res) {
 - 白帶魚 → 白帶魚（Trichiurus lepturus）
 - 竹莢魚 / 巴攏 → 竹莢魚（Trachurus japonicus）
 - 臭肚 → 臭肚魚（Siganus spp.）
-- 象魚 / 曼波魚 → 翻車魚（Mola mola）
 - 土魠 → 鰆魚（Scomberomorus commerson）
 - 赤鯮 → 赤鯮（Pagrus major）
 - 黑鯛 / 烏格 → 黑棘鯛（Acanthopagrus schlegelii）
@@ -38,6 +37,9 @@ export default async function handler(req, res) {
 - 虱目魚 → 虱目魚（Chanos chanos）
 - 烏魚 → 烏魚（Mugil cephalus）
 - 龍膽石斑 → 龍膽石斑（Epinephelus lanceolatus）
+- 象魚 / 曼波魚 → 翻車魚（Mola mola）
+- 三點仔 → 花身雞魚（Terapon jarbua）
+- 盤仔 → 花身雞魚（Terapon jarbua）
 
 請根據你的知識，判斷「${name}」在台灣最可能指的是哪種魚，然後只回傳 JSON，格式如下（不要任何說明文字、不要 markdown）：
 {
@@ -63,7 +65,7 @@ export default async function handler(req, res) {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-opus-4-5',
+        model: 'claude-opus-4-5-20251101',
         max_tokens: 1200,
         messages: [{ role: 'user', content: prompt }],
       }),
@@ -72,7 +74,7 @@ export default async function handler(req, res) {
     const data = await response.json()
     if (data.error) throw new Error(data.error.message)
 
-    const text  = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n')
+    const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n')
     const clean = text.replace(/```json|```/g, '').trim()
     const jsonMatch = clean.match(/\{[\s\S]*\}/)
     if (!jsonMatch) throw new Error('AI 未回傳有效資料，請重試')
