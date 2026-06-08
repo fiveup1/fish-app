@@ -9,14 +9,7 @@ export default function OceanBackground() {
     const ctx = canvas.getContext('2d')
     let animId, t = 0
 
-    const particles = Array.from({ length: 40 }, () => ({
-      x: Math.random(),
-      y: Math.random(),
-      r: Math.random() * 2.5 + 0.5,
-      speed: Math.random() * 0.00025 + 0.00008,
-      opacity: Math.random() * 0.35 + 0.08,
-      drift: (Math.random() - 0.5) * 0.00015,
-    }))
+
 
     function resize() {
       canvas.width  = window.innerWidth
@@ -45,24 +38,6 @@ export default function OceanBackground() {
       amb.addColorStop(1,   'rgba(74, 114, 196, 0)')
       ctx.fillStyle = amb
       ctx.fillRect(0, 0, width, height)
-
-      // Particles (soft periwinkle bubbles)
-      particles.forEach(p => {
-        p.y -= p.speed
-        p.x += Math.sin(t * 1.5 + p.y * 8) * p.drift
-        if (p.y < -0.02) { p.y = 1.02; p.x = Math.random() }
-
-        const px = p.x * width
-        const py = p.y * height
-        const g2 = ctx.createRadialGradient(px, py, 0, px, py, p.r * 5)
-        g2.addColorStop(0,   `rgba(168, 192, 232, ${p.opacity})`)
-        g2.addColorStop(0.5, `rgba(168, 192, 232, ${p.opacity * 0.3})`)
-        g2.addColorStop(1,   'rgba(168, 192, 232, 0)')
-        ctx.beginPath()
-        ctx.arc(px, py, p.r * 5, 0, Math.PI * 2)
-        ctx.fillStyle = g2
-        ctx.fill()
-      })
 
       // Subtle wave lines
       for (let i = 0; i < 4; i++) {
