@@ -35,18 +35,139 @@ const S = {
 const focusIn  = e => e.target.style.borderColor = 'var(--border-active)'
 const focusOut = e => e.target.style.borderColor = 'var(--border-subtle)'
 
+// ── AI Preview 確認 overlay ───────────────────────────────
+function PreviewOverlay({ name, fields, category, onConfirm, onCancel, onRetry }) {
+  const [cat, setCat] = useState(category)
+  const [editFields, setEditFields] = useState(fields)
+
+  const rows = Object.entries(FIELD_LABELS).filter(([key]) => editFields[key] != null && editFields[key] !== '')
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 80,
+      background: 'rgba(8,20,46,0.96)',
+      display: 'flex', flexDirection: 'column',
+      animation: 'bubbleUp 0.25s var(--ease-ocean)',
+      overflowY: 'auto',
+    }}>
+      {/* Header */}
+      <div style={{
+        paddingTop: 'calc(var(--safe-top) + 10px)',
+        padding: 'calc(var(--safe-top) + 10px) 16px 14px',
+        background: 'rgba(8,20,46,0.95)',
+        backdropFilter: 'blur(20px)',
+        borderBottom: '1px solid var(--border-subtle)',
+        position: 'sticky', top: 0, zIndex: 10,
+        flexShrink: 0,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+          <div style={{
+            width: 8, height: 8, borderRadius: '50%',
+            background: 'var(--accent-sky)',
+            boxShadow: '0 0 8px rgba(168,192,232,0.7)',
+          }} />
+          <span style={{ fontSize: 11, color: 'var(--accent-sky)', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em' }}>
+            AI 查詢結果 — 請確認資料
+          </span>
+        </div>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700 }}>{fields.matched_name || name}</h2>
+        {fields.matched_name && fields.matched_name !== name && (
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+            你輸入「{name}」→ AI 判斷為「{fields.matched_name}」
+          </p>
+        )}
+      </div>
+
+      <div style={{ padding: '16px 16px 32px', flex: 1 }}>
+        {/* Category */}
+        <div style={{ marginBottom: 20 }}>
+          <label style={S.label}>分類</label>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {CATEGORIES.map(c => (
+              <button key={c} onClick={() => setCat(c)} style={{
+                padding: '5px 14px', borderRadius: 20, fontSize: 13,
+                background: cat === c ? 'rgba(168,192,232,0.2)' : 'rgba(26,52,112,0.45)',
+                color: cat === c ? 'var(--accent-light)' : 'var(--text-muted)',
+                border: `1px solid ${cat === c ? 'var(--border-active)' : 'var(--border-subtle)'}`,
+                transition: 'all 0.15s', fontWeight: cat === c ? 600 : 400,
+              }}>{c}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Fields — editable */}
+        {Object.entries(FIELD_LABELS).map(([key, label]) => (
+          <div key={key} style={{ marginBottom: 14 }}>
+            <label style={S.label}>{label}</label>
+            {key === 'description' || key === 'cooking_methods' ? (
+              <textarea
+                value={editFields[key] || ''}
+                onChange={e => setEditFields(f => ({ ...f, [key]: e.target.value }))}
+                rows={3} style={{ ...S.input, resize: 'vertical', lineHeight: 1.7 }}
+                onFocus={focusIn} onBlur={focusOut}
+              />
+            ) : (
+              <input
+                value={editFields[key] || ''}
+                onChange={e => setEditFields(f => ({ ...f, [key]: e.target.value }))}
+                style={S.input} onFocus={focusIn} onBlur={focusOut}
+              />
+            )}
+          </div>
+        ))}
+
+        {/* Action buttons */}
+        <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+          <button
+            onClick={onCancel}
+            style={{
+              flex: 1, padding: '13px',
+              background: 'rgba(168,192,232,0.06)',
+              border: '1px solid var(--border-mid)',
+              borderRadius: 12, fontSize: 14, fontWeight: 600,
+              color: 'var(--text-secondary)',
+            }}
+          >✕ 取消不加入</button>
+          <button
+            onClick={onRetry}
+            style={{
+              padding: '13px 18px',
+              background: 'rgba(168,192,232,0.08)',
+              border: '1px solid var(--border-mid)',
+              borderRadius: 12, fontSize: 14, fontWeight: 600,
+              color: 'var(--text-secondary)',
+            }}
+          >↩ 重查</button>
+          <button
+            onClick={() => onConfirm(editFields, cat)}
+            style={{
+              flex: 1, padding: '13px',
+              background: 'linear-gradient(135deg, #4a72c4, #a8c0e8)',
+              color: 'var(--bg-abyss)',
+              borderRadius: 12, fontSize: 14, fontWeight: 700,
+              boxShadow: '0 4px 16px rgba(74,114,196,0.4)',
+            }}
+          >✓ 確認加入圖鑑</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Main AddPage ──────────────────────────────────────────
 export default function AddPage() {
-  const navigate = useNavigate()
+  const navigate    = useNavigate()
   const fileInputRef = useRef(null)
+
   const [name, setName]         = useState('')
   const [category, setCategory] = useState('魚')
-  const [fields, setFields]     = useState({})
   const [photos, setPhotos]     = useState([])
   const [aiLoading, setAiLoading] = useState(false)
   const [saving, setSaving]       = useState(false)
   const [error, setError]         = useState('')
-  const [aiDone, setAiDone]       = useState(false)
-  const [aiImageUrl, setAiImageUrl] = useState(null)
+
+  // Preview state
+  const [preview, setPreview] = useState(null) // null | { fields, category }
 
   async function handleAILookup() {
     if (!name.trim()) return
@@ -59,17 +180,15 @@ export default function AddPage() {
       })
       const data = await res.json()
       if (data.error) throw new Error(data.error)
-      const { suggested_image, latin_name, ...rest } = data
 
-      // ── 分類推斷：規則優先，AI 備援 ──
-      const ruleCategory = inferCategory(name.trim())
-      const aiCategory   = rest.category
-      const resolved     = ruleCategory || aiCategory || '其他'
+      const { latin_name, ...rest } = data
+
+      // 分類推斷：規則優先，AI 備援
+      const ruleCategory = inferCategory(name.trim()) || inferCategory(rest.matched_name || '')
+      const resolved     = ruleCategory || rest.category || '其他'
+
       setCategory(resolved)
-
-      setFields({ ...rest, category: resolved })
-      setAiDone(true)
-      if (suggested_image) setAiImageUrl(suggested_image)
+      setPreview({ fields: { ...rest }, category: resolved })
     } catch (e) {
       setError('AI 查詢失敗：' + e.message)
     } finally {
@@ -80,9 +199,7 @@ export default function AddPage() {
   function handlePhotoSelect(e) {
     const files = Array.from(e.target.files)
     const remaining = 10 - photos.length
-    const toAdd = files.slice(0, remaining).map(file => ({
-      file, preview: URL.createObjectURL(file),
-    }))
+    const toAdd = files.slice(0, remaining).map(f => ({ file: f, preview: URL.createObjectURL(f) }))
     setPhotos(prev => [...prev, ...toAdd])
   }
 
@@ -95,20 +212,26 @@ export default function AddPage() {
     })
   }
 
-  async function handleSave() {
-    if (!name.trim()) { setError('請輸入魚名'); return }
+  async function handleConfirm(confirmedFields, confirmedCat) {
+    setPreview(null)
     setSaving(true); setError('')
     try {
+      const saveName = confirmedFields.matched_name || name.trim()
       const { data: fish, error: insertErr } = await supabase
         .from('fishes')
         .insert({
-          name: name.trim(),
-          category,
-          ...fields,
-          market_price:  fields.market_price  ? parseFloat(fields.market_price)  : null,
-          habitat_depth: fields.habitat_depth ? parseFloat(fields.habitat_depth) : null,
-          cover_photo:    aiImageUrl || null,
-          ai_cover_photo: aiImageUrl || null,   // ← 永久保留 AI 圖
+          name: saveName,
+          category: confirmedCat,
+          scientific_name:  confirmedFields.scientific_name  || null,
+          common_names:     confirmedFields.common_names     || null,
+          flavor:           confirmedFields.flavor           || null,
+          texture:          confirmedFields.texture          || null,
+          market_price:     confirmedFields.market_price     ? parseFloat(confirmedFields.market_price)  : null,
+          cooking_methods:  confirmedFields.cooking_methods  || null,
+          habitat_depth:    confirmedFields.habitat_depth    ? parseFloat(confirmedFields.habitat_depth) : null,
+          description:      confirmedFields.description      || null,
+          cover_photo:    null,
+          ai_cover_photo: null,
           photos: [],
         })
         .select().single()
@@ -123,8 +246,10 @@ export default function AddPage() {
           const { data } = supabase.storage.from('fish-photos').getPublicUrl(path)
           urls.push(data.publicUrl)
         }
-        await supabase.from('fishes').update({ photos: urls }).eq('id', fish.id)
+        // First photo becomes cover
+        await supabase.from('fishes').update({ photos: urls, cover_photo: urls[0] }).eq('id', fish.id)
       }
+
       navigate(`/fish/${fish.id}`)
     } catch (e) {
       setError('儲存失敗：' + e.message)
@@ -135,6 +260,19 @@ export default function AddPage() {
 
   return (
     <div style={{ height: '100%', overflowY: 'auto', position: 'relative', zIndex: 1 }}>
+
+      {/* AI Preview overlay */}
+      {preview && (
+        <PreviewOverlay
+          name={name}
+          fields={preview.fields}
+          category={preview.category}
+          onConfirm={handleConfirm}
+          onCancel={() => setPreview(null)}
+          onRetry={() => { setPreview(null); handleAILookup() }}
+        />
+      )}
+
       {/* Header */}
       <div style={{
         paddingTop: 'calc(var(--safe-top) + 8px)',
@@ -154,34 +292,19 @@ export default function AddPage() {
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 700 }}>新增海鮮</h2>
       </div>
 
-      {/* AI cover preview */}
-      {aiImageUrl && (
-        <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', background: 'var(--bg-surface)', overflow: 'hidden' }}>
-          <img
-            src={`/api/image-proxy?url=${encodeURIComponent(aiImageUrl)}`}
-            alt="封面"
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            onError={() => setAiImageUrl(null)}
-          />
-          <div style={{
-            position: 'absolute', bottom: 10, left: 10,
-            background: 'rgba(8,20,46,0.75)', backdropFilter: 'blur(8px)',
-            border: '1px solid var(--border-mid)',
-            borderRadius: 6, padding: '3px 9px', fontSize: 10, color: 'var(--accent-sky)',
-          }}>✦ AI 封面圖</div>
-        </div>
-      )}
-
       <div style={{ padding: '20px 16px 120px' }}>
 
         {/* Fish name + AI button */}
         <section style={{ marginBottom: 20 }}>
           <label style={S.label}>魚種名稱</label>
+          <p style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 8, lineHeight: 1.6 }}>
+            輸入你知道的名字，例如市場俗名、台語名都可以
+          </p>
           <div style={{ display: 'flex', gap: 8 }}>
             <input
               value={name}
               onChange={e => setName(e.target.value)}
-              placeholder="例：石狗公、黑鮪魚..."
+              placeholder="例：石狗公、金花魚、三牙..."
               style={{ ...S.input, flex: 1 }}
               onFocus={focusIn} onBlur={focusOut}
               onKeyDown={e => e.key === 'Enter' && handleAILookup()}
@@ -200,73 +323,30 @@ export default function AddPage() {
                 border: aiLoading ? '1px solid var(--border-subtle)' : 'none',
                 letterSpacing: '0.03em',
                 boxShadow: aiLoading ? 'none' : '0 2px 12px rgba(74,114,196,0.45)',
+                minWidth: 110,
               }}
-            >{aiLoading ? '查詢中...' : '✦ AI 辨識加入魚池'}</button>
+            >
+              {aiLoading
+                ? <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(74,114,196,0.5)', borderTopColor: 'var(--bg-abyss)', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
+                    查詢中
+                  </span>
+                : '✦ AI 辨識加入魚池'}
+            </button>
           </div>
-        </section>
-
-        {/* Category — always visible, manually editable */}
-        <section style={{ marginBottom: 24 }}>
-          <label style={S.label}>分類</label>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {CATEGORIES.map(cat => (
-              <button
-                key={cat}
-                onClick={() => setCategory(cat)}
-                style={{
-                  padding: '5px 14px', borderRadius: 20, fontSize: 13,
-                  background: category === cat ? 'rgba(168,192,232,0.2)' : 'rgba(26,52,112,0.45)',
-                  color: category === cat ? 'var(--accent-light)' : 'var(--text-muted)',
-                  border: `1px solid ${category === cat ? 'var(--border-active)' : 'var(--border-subtle)'}`,
-                  transition: 'all 0.18s', fontWeight: category === cat ? 600 : 400,
-                }}
-              >{cat}</button>
-            ))}
-          </div>
-          {aiDone && (
-            <p style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
-              ✦ AI 已自動推斷分類，可手動調整
-            </p>
+          {error && (
+            <div style={{ marginTop: 10, padding: '9px 12px', background: 'rgba(255,128,102,0.08)', border: '1px solid rgba(255,128,102,0.3)', borderRadius: 8, color: 'var(--accent-coral)', fontSize: 12 }}>{error}</div>
           )}
         </section>
 
-        {/* AI Fields */}
-        {aiDone && (
-          <section style={{ marginBottom: 24, animation: 'bubbleUp 0.4s var(--ease-ocean)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-              <div style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
-              <span style={{ fontSize: 10, color: 'var(--accent-sky)', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em' }}>
-                AI 查詢結果
-              </span>
-              <div style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
-            </div>
-            {Object.entries(FIELD_LABELS).map(([key, label]) => (
-              <div key={key} style={{ marginBottom: 14 }}>
-                <label style={S.label}>{label}</label>
-                {key === 'description' || key === 'cooking_methods' ? (
-                  <textarea
-                    value={fields[key] || ''}
-                    onChange={e => setFields(f => ({ ...f, [key]: e.target.value }))}
-                    rows={3} style={{ ...S.input, resize: 'vertical', lineHeight: 1.7 }}
-                    onFocus={focusIn} onBlur={focusOut}
-                  />
-                ) : (
-                  <input
-                    value={fields[key] || ''}
-                    onChange={e => setFields(f => ({ ...f, [key]: e.target.value }))}
-                    style={S.input} onFocus={focusIn} onBlur={focusOut}
-                  />
-                )}
-              </div>
-            ))}
-          </section>
-        )}
-
         {/* My Photos */}
         <section style={{ marginBottom: 24 }}>
-          <label style={{ ...S.label, marginBottom: 8 }}>
+          <label style={{ ...S.label, marginBottom: 4 }}>
             我的照片 <span style={{ color: 'var(--text-dim)', fontWeight: 400 }}>({photos.length}/10)</span>
           </label>
+          <p style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 8, lineHeight: 1.5 }}>
+            可先上傳照片，確認 AI 資料後一起儲存
+          </p>
           <input ref={fileInputRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handlePhotoSelect} />
           {photos.length > 0 ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
@@ -281,22 +361,19 @@ export default function AddPage() {
                     color: 'var(--accent-coral)', fontSize: 13,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>×</button>
+                  {i === 0 && (
+                    <div style={{ position: 'absolute', bottom: 4, left: 4, background: 'rgba(74,114,196,0.88)', borderRadius: 4, padding: '1px 6px', fontSize: 9, color: '#fff' }}>封面</div>
+                  )}
                 </div>
               ))}
               {photos.length < 10 && (
-                <button onClick={() => fileInputRef.current?.click()} style={{
-                  aspectRatio: '1', borderRadius: 10,
-                  background: 'rgba(26,52,112,0.4)',
-                  border: '1px dashed var(--border-mid)',
-                  color: 'var(--text-muted)', fontSize: 22,
-                }}>+</button>
+                <button onClick={() => fileInputRef.current?.click()} style={{ aspectRatio: '1', borderRadius: 10, background: 'rgba(26,52,112,0.4)', border: '1px dashed var(--border-mid)', color: 'var(--text-muted)', fontSize: 22 }}>+</button>
               )}
             </div>
           ) : (
             <button onClick={() => fileInputRef.current?.click()} style={{
               width: '100%', padding: '26px 16px', borderRadius: 12,
-              background: 'rgba(26,52,112,0.35)',
-              border: '1px dashed var(--border-mid)',
+              background: 'rgba(26,52,112,0.35)', border: '1px dashed var(--border-mid)',
               color: 'var(--text-muted)', fontSize: 13,
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7,
             }}>
@@ -306,25 +383,25 @@ export default function AddPage() {
           )}
         </section>
 
-        {error && (
-          <div style={{
-            padding: '10px 14px', marginBottom: 16,
-            background: 'rgba(255,128,102,0.08)', border: '1px solid rgba(255,128,102,0.3)',
-            borderRadius: 8, color: 'var(--accent-coral)', fontSize: 13,
-          }}>{error}</div>
-        )}
-
-        <button onClick={handleSave} disabled={saving} style={{
-          width: '100%', padding: '15px',
-          background: saving ? 'rgba(26,52,112,0.5)' : 'linear-gradient(135deg, #4a72c4, #a8c0e8)',
-          color: saving ? 'var(--text-muted)' : 'var(--bg-abyss)',
-          borderRadius: 12, fontSize: 15, fontWeight: 700,
-          fontFamily: 'var(--font-display)',
-          boxShadow: saving ? 'none' : '0 4px 20px rgba(74,114,196,0.4)',
-          transition: 'all 0.2s',
+        {/* Hint */}
+        <div style={{
+          padding: '12px 14px', borderRadius: 10,
+          background: 'rgba(74,114,196,0.08)', border: '1px solid rgba(74,114,196,0.18)',
+          fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.7,
         }}>
-          {saving ? '儲存中...' : '儲存到圖鑑'}
-        </button>
+          <span style={{ color: 'var(--accent-sky)', fontWeight: 600 }}>使用說明</span><br />
+          1. 輸入魚名 → 點「AI 辨識加入魚池」<br />
+          2. 預覽 AI 查到的資料，可直接修改欄位<br />
+          3. 確認正確後按「確認加入圖鑑」儲存<br />
+          4. 若資料不對，按「取消」或「重查」
+        </div>
+
+        {saving && (
+          <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: 'var(--text-muted)', fontSize: 13 }}>
+            <div style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid var(--accent-sky)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
+            儲存中...
+          </div>
+        )}
       </div>
     </div>
   )
