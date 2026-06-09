@@ -144,7 +144,7 @@ export default function AtlasPage() {
           <h1 style={{
             fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 700,
             color: 'var(--text-primary)', letterSpacing: '-0.01em',
-          }}>海鮮圖鑑</h1>
+          }}>鰭跡地圖</h1>
           <span style={{
             fontFamily: 'var(--font-mono)', fontSize: 11,
             color: 'var(--accent-sky)', opacity: 0.65,

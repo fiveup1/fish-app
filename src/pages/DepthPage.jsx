@@ -7,8 +7,7 @@ const DEPTH_ZONES = [
   { name: '潮間帶',   range: [0,    50],    color: '#a8c0e8' },
   { name: '淺海帶',   range: [50,   200],   color: '#6899d8' },
   { name: '中深海帶', range: [200,  1000],  color: '#4a72c4' },
-  { name: '深海帶',   range: [1000, 4000],  color: '#2a4a9a' },
-  { name: '深淵帶',   range: [4000, 11000], color: '#1a2e70' },
+  { name: '深海帶',   range: [1000, 3000],  color: '#2a4a9a' },
 ]
 
 const CONTAINER_H  = 1200   // total scrollable height (px)
@@ -17,10 +16,18 @@ const CARD_H       = 96     // card height (photo + name)
 const COL_GAP      = 8      // gap between columns
 const LEFT_RULER_W = 52
 
+// 分段線性映射：0-200m 佔 55%，200-3000m 佔 45%
+// 這樣淺海食用魚區間更清楚
 function getDepthY(depth, h) {
-  const logDepth = Math.log10(Math.max(depth, 1))
-  const logMax   = Math.log10(11000)
-  return (logDepth / logMax) * h
+  const MAX_DEPTH = 3000
+  const d = Math.min(depth, MAX_DEPTH)
+  if (d <= 200) {
+    // 0-200m → 0 ~ 55% of h
+    return (d / 200) * h * 0.55
+  } else {
+    // 200-3000m → 55% ~ 100% of h
+    return h * 0.55 + ((d - 200) / (MAX_DEPTH - 200)) * h * 0.45
+  }
 }
 
 export default function DepthPage() {
@@ -71,7 +78,7 @@ export default function DepthPage() {
         backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
         borderBottom: '1px solid var(--border-subtle)', flexShrink: 0,
       }}>
-        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, marginBottom: 2 }}>海洋深度圖</h2>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, marginBottom: 2 }}>深海棲息圖</h2>
         <p style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
           {fishes.length} 種 · 上下滑動看深度，左右滑動看更多
         </p>
@@ -102,7 +109,7 @@ export default function DepthPage() {
               backdropFilter: 'blur(12px)',
               borderRight: '1px solid var(--border-subtle)',
             }}>
-              {[0, 10, 50, 200, 500, 1000, 2000, 4000, 11000].map(depth => {
+              {[0, 10, 30, 50, 100, 200, 500, 1000, 2000, 3000].map(depth => {
                 const y = getDepthY(depth, CONTAINER_H) + 40
                 return (
                   <div key={depth} style={{
@@ -111,12 +118,12 @@ export default function DepthPage() {
                     fontFamily: 'var(--font-mono)', fontSize: 9,
                     color: 'var(--text-muted)', textAlign: 'right', whiteSpace: 'nowrap',
                   }}>
-                    {depth >= 1000 ? `${depth/1000}km` : `${depth}m`}
+                    {depth >= 1000 ? `${(depth/1000).toFixed(depth===3000?1:1)}km` : `${depth}m`}
                   </div>
                 )
               })}
               {/* tick marks */}
-              {[0, 10, 50, 200, 500, 1000, 2000, 4000, 11000].map(depth => {
+              {[0, 10, 30, 50, 100, 200, 500, 1000, 2000, 3000].map(depth => {
                 const y = getDepthY(depth, CONTAINER_H) + 40
                 return (
                   <div key={`tick-${depth}`} style={{

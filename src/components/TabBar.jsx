@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 const tabs = [
   {
     path: '/',
-    label: '圖鑑',
+    label: '鰭跡地圖',
     icon: (active) => (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
         <rect x="3"  y="3"  width="8" height="8" rx="2"
@@ -23,7 +23,7 @@ const tabs = [
   },
   {
     path: '/add',
-    label: '新增',
+    label: '食刻時光',
     icon: (active) => (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
         <circle cx="12" cy="12" r="9"

@@ -316,7 +316,7 @@ export default function AddPage() {
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           border: '1px solid var(--border-subtle)', flexShrink: 0,
         }}>←</button>
-        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 700 }}>新增海鮮</h2>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 700 }}>食刻時光</h2>
       </div>
 
       <div style={{ padding: '16px 16px 100px', maxWidth: '100%', boxSizing: 'border-box' }}>
