@@ -308,14 +308,7 @@ export default function AddPage() {
         backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
         borderBottom: '1px solid var(--border-subtle)',
         position: 'sticky', top: 0, zIndex: 10,
-        display: 'flex', alignItems: 'center', gap: 12,
       }}>
-        <button onClick={() => navigate('/')} style={{
-          background: 'rgba(168,192,232,0.1)', color: 'var(--text-secondary)',
-          fontSize: 18, width: 34, height: 34, borderRadius: '50%',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          border: '1px solid var(--border-subtle)', flexShrink: 0,
-        }}>←</button>
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 700 }}>食刻時光</h2>
       </div>
 
@@ -344,43 +337,18 @@ export default function AddPage() {
           }}>
             {aiLoading
               ? <><span style={{ width: 13, height: 13, borderRadius: '50%', border: '2px solid rgba(74,114,196,0.5)', borderTopColor: 'transparent', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />查詢中...</>
-              : '✦ AI 辨識加入魚池'}
+              : '🔍 搜尋魚料'}
           </button>
           {error && (
             <div style={{ marginTop: 10, padding: '9px 12px', background: 'rgba(255,128,102,0.08)', border: '1px solid rgba(255,128,102,0.3)', borderRadius: 8, color: 'var(--accent-coral)', fontSize: 12 }}>{error}</div>
           )}
         </section>
 
-        {/* Photos */}
-        <section style={{ marginBottom: 20 }}>
-          <label style={{ ...S.label, marginBottom: 4 }}>
-            我的照片 <span style={{ color: 'var(--text-dim)', fontWeight: 400 }}>({photos.length}/10)</span>
-          </label>
-          <p style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 8 }}>可先上傳，辨識完可在預覽頁選封面</p>
-          <input ref={fileInputRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handlePhotoSelect} />
-          {photos.length > 0 ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-              {photos.map((p, i) => (
-                <div key={i} style={{ position: 'relative', aspectRatio: '1', borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
-                  <img src={p.preview} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  <button onClick={() => removePhoto(i)} style={{ position: 'absolute', top: 5, right: 5, width: 22, height: 22, borderRadius: '50%', background: 'rgba(8,20,46,0.85)', border: '1px solid rgba(255,128,102,0.5)', color: 'var(--accent-coral)', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
-                </div>
-              ))}
-              {photos.length < 10 && (
-                <button onClick={() => fileInputRef.current?.click()} style={{ aspectRatio: '1', borderRadius: 10, background: 'rgba(26,52,112,0.4)', border: '1px dashed var(--border-mid)', color: 'var(--text-muted)', fontSize: 22 }}>+</button>
-              )}
-            </div>
-          ) : (
-            <button onClick={() => fileInputRef.current?.click()} style={{ width: '100%', padding: '22px 16px', borderRadius: 12, background: 'rgba(26,52,112,0.35)', border: '1px dashed var(--border-mid)', color: 'var(--text-muted)', fontSize: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }}>
-              <span style={{ fontSize: 26, opacity: 0.6 }}>📷</span>
-              <span>點擊上傳照片（最多 10 張）</span>
-            </button>
-          )}
-        </section>
+
 
         <div style={{ padding: '11px 13px', borderRadius: 10, background: 'rgba(74,114,196,0.08)', border: '1px solid rgba(74,114,196,0.18)', fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.8 }}>
           <span style={{ color: 'var(--accent-sky)', fontWeight: 600 }}>使用說明</span><br />
-          1. 輸入魚名 → 點「AI 辨識加入魚池」<br />
+          1. 輸入魚名 → 點「🔍 搜尋魚料」<br />
           2. 預覽頁右上角直接按「✓ 存檔」<br />
           3. 不對 → 左上角「取消」或右側「↩ 重查」
         </div>

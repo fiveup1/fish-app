@@ -16,17 +16,14 @@ const CARD_H       = 96     // card height (photo + name)
 const COL_GAP      = 8      // gap between columns
 const LEFT_RULER_W = 52
 
-// 分段線性映射：0-200m 佔 55%，200-3000m 佔 45%
-// 這樣淺海食用魚區間更清楚
+// 分段線性映射：0-200m 佔 80%，200-3000m 佔 20%
 function getDepthY(depth, h) {
   const MAX_DEPTH = 3000
   const d = Math.min(depth, MAX_DEPTH)
   if (d <= 200) {
-    // 0-200m → 0 ~ 55% of h
-    return (d / 200) * h * 0.55
+    return (d / 200) * h * 0.80
   } else {
-    // 200-3000m → 55% ~ 100% of h
-    return h * 0.55 + ((d - 200) / (MAX_DEPTH - 200)) * h * 0.45
+    return h * 0.80 + ((d - 200) / (MAX_DEPTH - 200)) * h * 0.20
   }
 }
 
@@ -109,7 +106,7 @@ export default function DepthPage() {
               backdropFilter: 'blur(12px)',
               borderRight: '1px solid var(--border-subtle)',
             }}>
-              {[0, 10, 30, 50, 100, 200, 500, 1000, 2000, 3000].map(depth => {
+              {[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 500, 1000, 2000, 3000].map(depth => {
                 const y = getDepthY(depth, CONTAINER_H) + 40
                 return (
                   <div key={depth} style={{
@@ -123,7 +120,7 @@ export default function DepthPage() {
                 )
               })}
               {/* tick marks */}
-              {[0, 10, 30, 50, 100, 200, 500, 1000, 2000, 3000].map(depth => {
+              {[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 500, 1000, 2000, 3000].map(depth => {
                 const y = getDepthY(depth, CONTAINER_H) + 40
                 return (
                   <div key={`tick-${depth}`} style={{
