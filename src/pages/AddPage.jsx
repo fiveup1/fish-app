@@ -23,13 +23,13 @@ const focusOut = e => e.target.style.borderColor = 'var(--border-subtle)'
 
 /* ── PreviewOverlay ─────────────────────────────────────── */
 /* ── PreviewOverlay ─────────────────────────────────────── */
+/* ── PreviewOverlay ─────────────────────────────────────── */
 function PreviewOverlay({ name, fields, category, photos, saving, onConfirm, onCancel, onRetry }) {
   const [cat, setCat]               = useState(category)
   const [editFields, setEditFields] = useState(fields)
   const [coverSource, setCoverSource] = useState(
     fields.suggested_image ? 'ai' : (photos.length > 0 ? 'user:0' : null)
   )
-
   const aiImg     = fields.suggested_image
   const wikiTitle = fields.wiki_title
   const wikiUrl   = fields.wiki_url
@@ -43,33 +43,36 @@ function PreviewOverlay({ name, fields, category, photos, saving, onConfirm, onC
   return (
     <div style={{
       position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      zIndex: 200,
-      background: '#08142e',
+      zIndex: 200, background: '#08142e',
       display: 'flex', flexDirection: 'column',
-      overflow: 'hidden',                        /* ← prevent any horizontal bleed */
+      overflow: 'hidden',
       animation: 'bubbleUp 0.25s var(--ease-ocean)',
     }}>
 
-      {/* ── TOP BAR: 取消 / 標題 / 存檔 ── */}
+      {/* ── TOP BAR ── 固定左右寬度，中間 flex: 1 絕不溢出 */}
       <div style={{
         flexShrink: 0,
-        padding: 'calc(var(--safe-top) + 8px) 12px 10px',
+        display: 'flex', alignItems: 'center',
+        padding: 'calc(var(--safe-top) + 8px) 10px 10px',
+        gap: 6,
         background: 'rgba(8,20,46,0.98)',
         backdropFilter: 'blur(20px)',
         borderBottom: '1px solid rgba(168,192,232,0.10)',
-        display: 'flex', alignItems: 'center', gap: 8,
       }}>
+        {/* 取消 — 固定寬度 */}
         <button onClick={onCancel} style={{
-          flexShrink: 0, padding: '8px 14px',
+          width: 56, height: 36, flexShrink: 0,
           background: 'rgba(168,192,232,0.06)',
           border: '1px solid rgba(168,192,232,0.2)',
           borderRadius: 10, fontSize: 13, fontWeight: 600, color: '#a8c0e8',
         }}>取消</button>
 
+        {/* 中間標題 — 可縮可截 */}
         <div style={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 700, color: '#f0f6ff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {editFields.matched_name || name}
-          </div>
+          <div style={{
+            fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 700, color: '#f0f6ff',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>{editFields.matched_name || name}</div>
           {wikiTitle && (
             <div style={{ fontSize: 10, color: '#6889b8', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               📖 {wikiUrl
@@ -79,54 +82,53 @@ function PreviewOverlay({ name, fields, category, photos, saving, onConfirm, onC
           )}
         </div>
 
+        {/* 存檔 — 固定寬度 */}
         <button onClick={handleSave} disabled={saving} style={{
-          flexShrink: 0, padding: '8px 14px',
+          width: 64, height: 36, flexShrink: 0,
           background: saving ? 'rgba(26,52,112,0.5)' : 'linear-gradient(135deg, #4a72c4, #a8c0e8)',
           color: saving ? '#6889b8' : '#08142e',
           border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700,
-          display: 'flex', alignItems: 'center', gap: 5,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
           boxShadow: saving ? 'none' : '0 2px 10px rgba(74,114,196,0.4)',
         }}>
           {saving
-            ? <><span style={{ width: 11, height: 11, borderRadius: '50%', border: '2px solid #6889b8', borderTopColor: 'transparent', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />儲存</>
+            ? <span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid #6889b8', borderTopColor: 'transparent', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
             : '✓ 存檔'}
         </button>
       </div>
 
-      {/* 魚名對應 + 重查 */}
+      {/* 對應說明 + 重查 */}
       <div style={{
-        flexShrink: 0,
-        padding: '6px 12px',
+        flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6,
+        padding: '6px 10px',
         background: 'rgba(8,20,46,0.6)',
         borderBottom: '1px solid rgba(168,192,232,0.06)',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
       }}>
-        <span style={{ fontSize: 11, color: '#6889b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+        <span style={{ flex: 1, minWidth: 0, fontSize: 11, color: '#6889b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {editFields.matched_name && editFields.matched_name !== name
             ? `「${name}」→「${editFields.matched_name}」`
             : !wikiTitle ? '⚠ 維基未找到，以 AI 知識為準' : '資料已確認，可修改後存檔'}
         </span>
         <button onClick={onRetry} style={{
           flexShrink: 0, padding: '4px 10px',
-          background: 'rgba(168,192,232,0.07)',
-          border: '1px solid rgba(168,192,232,0.15)',
+          background: 'rgba(168,192,232,0.07)', border: '1px solid rgba(168,192,232,0.15)',
           borderRadius: 8, fontSize: 11, color: '#a8c0e8', fontWeight: 600,
         }}>↩ 重查</button>
       </div>
 
-      {/* ── Scrollable fields ── */}
+      {/* ── 可滾動區域 ── */}
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '14px 16px 0' }}>
 
-        {/* Cover selector */}
+        {/* 封面選擇 */}
         {(aiImg || photos.length > 0) && (
           <div style={{ marginBottom: 18 }}>
             <label style={S.label}>選擇封面</label>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {aiImg && (
                 <div onClick={() => setCoverSource('ai')} style={{
-                  position: 'relative', cursor: 'pointer', borderRadius: 10, overflow: 'hidden',
+                  position: 'relative', cursor: 'pointer', borderRadius: 10, overflow: 'hidden', flexShrink: 0,
                   border: `2px solid ${coverSource === 'ai' ? '#a8c0e8' : 'rgba(168,192,232,0.2)'}`,
-                  transition: 'border-color 0.2s', flexShrink: 0,
+                  transition: 'border-color 0.2s',
                 }}>
                   <img src={`/api/image-proxy?url=${encodeURIComponent(aiImg)}`} alt="AI"
                     style={{ width: 80, height: 80, objectFit: 'cover', display: 'block' }}
@@ -152,7 +154,7 @@ function PreviewOverlay({ name, fields, category, photos, saving, onConfirm, onC
           </div>
         )}
 
-        {/* Category */}
+        {/* 分類 */}
         <div style={{ marginBottom: 18 }}>
           <label style={S.label}>分類</label>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -168,7 +170,7 @@ function PreviewOverlay({ name, fields, category, photos, saving, onConfirm, onC
           </div>
         </div>
 
-        {/* All editable fields — inputs constrained to container width */}
+        {/* 所有欄位 */}
         {Object.entries(FIELD_LABELS).map(([key, label]) => (
           <div key={key} style={{ marginBottom: 14 }}>
             <label style={S.label}>{label}</label>
