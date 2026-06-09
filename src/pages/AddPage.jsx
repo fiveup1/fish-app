@@ -4,7 +4,6 @@ import { supabase } from '../lib/supabase'
 import { inferCategory } from '../lib/categoryRules'
 
 const CATEGORIES = ['魚', '蝦', '蟹', '貝', '花枝', '章魚', '其他']
-
 const FIELD_LABELS = {
   scientific_name: '中文學名',
   common_names:    '常見別名',
@@ -15,163 +14,140 @@ const FIELD_LABELS = {
   habitat_depth:   '棲息深度（公尺）',
   description:     '備註說明',
 }
-
 const S = {
-  label: {
-    display: 'block', fontSize: 11,
-    color: 'var(--text-muted)', marginBottom: 5,
-    fontFamily: 'var(--font-mono)', letterSpacing: '0.06em',
-    textTransform: 'uppercase',
-  },
-  input: {
-    width: '100%', padding: '10px 13px',
-    background: 'rgba(26,52,112,0.55)',
-    border: '1px solid var(--border-subtle)',
-    borderRadius: 10, fontSize: 14,
-    color: 'var(--text-primary)',
-    outline: 'none', transition: 'border-color 0.2s',
-  },
+  label: { display: 'block', fontSize: 11, color: 'var(--text-muted)', marginBottom: 5, fontFamily: 'var(--font-mono)', letterSpacing: '0.06em', textTransform: 'uppercase' },
+  input: { width: '100%', padding: '10px 13px', background: 'rgba(26,52,112,0.55)', border: '1px solid var(--border-subtle)', borderRadius: 10, fontSize: 14, color: 'var(--text-primary)', outline: 'none', transition: 'border-color 0.2s' },
 }
 const focusIn  = e => e.target.style.borderColor = 'var(--border-active)'
 const focusOut = e => e.target.style.borderColor = 'var(--border-subtle)'
 
 /* ── PreviewOverlay ─────────────────────────────────────── */
-function PreviewOverlay({ name, fields, category, photos, onConfirm, onCancel, onRetry, saving }) {
+function PreviewOverlay({ name, fields, category, photos, saving, onConfirm, onCancel, onRetry }) {
   const [cat, setCat]               = useState(category)
   const [editFields, setEditFields] = useState(fields)
-  // cover: 'ai' | 'user:{idx}' | null
-  const [coverSource, setCoverSource] = useState(fields.suggested_image ? 'ai' : (photos.length > 0 ? 'user:0' : null))
+  const [coverSource, setCoverSource] = useState(
+    fields.suggested_image ? 'ai' : (photos.length > 0 ? 'user:0' : null)
+  )
 
+  const aiImg     = fields.suggested_image
   const wikiTitle = fields.wiki_title
   const wikiUrl   = fields.wiki_url
-  const aiImg     = fields.suggested_image
 
-  // resolve current cover URL for preview
-  const currentCoverUrl = coverSource === 'ai'
-    ? `/api/image-proxy?url=${encodeURIComponent(aiImg)}`
-    : coverSource?.startsWith('user:')
-      ? photos[parseInt(coverSource.split(':')[1])]?.preview
-      : null
-
-  function handleConfirmClick() {
-    // pass cover choice back
-    const coverIsAi   = coverSource === 'ai'
+  function handleSave() {
+    const coverIsAi    = coverSource === 'ai'
     const coverUserIdx = coverSource?.startsWith('user:') ? parseInt(coverSource.split(':')[1]) : null
     onConfirm(editFields, cat, coverIsAi, coverUserIdx)
   }
 
   return (
-    <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      zIndex: 200,
-      background: '#08142e',
-      display: 'flex', flexDirection: 'column',
-      animation: 'bubbleUp 0.25s var(--ease-ocean)',
-    }}>
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 200, background: '#08142e', display: 'flex', flexDirection: 'column', animation: 'bubbleUp 0.25s var(--ease-ocean)' }}>
 
-      {/* ── Header ── */}
+      {/* ── TOP BAR: 取消 / 標題 / 存檔 ── */}
       <div style={{
-        padding: 'calc(var(--safe-top) + 10px) 16px 12px',
+        flexShrink: 0,
+        padding: 'calc(var(--safe-top) + 8px) 12px 10px',
         background: 'rgba(8,20,46,0.98)',
         backdropFilter: 'blur(20px)',
         borderBottom: '1px solid rgba(168,192,232,0.10)',
-        flexShrink: 0,
+        display: 'flex', alignItems: 'center', gap: 8,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
-          <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#a8c0e8', boxShadow: '0 0 8px rgba(168,192,232,0.7)' }} />
-          <span style={{ fontSize: 11, color: '#a8c0e8', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em' }}>
-            AI 查詢結果 — 確認後存檔
-          </span>
+        {/* 取消 */}
+        <button onClick={onCancel} style={{
+          flexShrink: 0, padding: '8px 14px',
+          background: 'rgba(168,192,232,0.06)',
+          border: '1px solid rgba(168,192,232,0.2)',
+          borderRadius: 10, fontSize: 13, fontWeight: 600, color: '#a8c0e8',
+        }}>取消</button>
+
+        {/* 標題 */}
+        <div style={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 700, color: '#f0f6ff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {editFields.matched_name || name}
+          </div>
+          {wikiTitle && (
+            <div style={{ fontSize: 10, color: '#6889b8', marginTop: 1 }}>
+              📖 {wikiUrl
+                ? <a href={wikiUrl} target="_blank" rel="noreferrer" style={{ color: '#a8c0e8', textDecoration: 'underline dotted' }}>{wikiTitle}</a>
+                : wikiTitle}
+            </div>
+          )}
         </div>
-        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: '#f0f6ff', marginBottom: 4 }}>
-          {editFields.matched_name || name}
-        </h2>
-        {editFields.matched_name && editFields.matched_name !== name && (
-          <p style={{ fontSize: 12, color: '#6889b8', marginBottom: 5 }}>
-            你輸入「{name}」→ 對應到「{editFields.matched_name}」
-          </p>
-        )}
-        {wikiTitle ? (
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(168,192,232,0.08)', border: '1px solid rgba(168,192,232,0.2)', borderRadius: 6, padding: '3px 10px' }}>
-            <span style={{ fontSize: 10, color: '#6889b8' }}>📖</span>
-            {wikiUrl
-              ? <a href={wikiUrl} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: '#a8c0e8', textDecoration: 'underline', textDecorationStyle: 'dotted' }}>{wikiTitle}</a>
-              : <span style={{ fontSize: 11, color: '#a8c0e8' }}>{wikiTitle}</span>
-            }
-          </div>
-        ) : (
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(244,198,96,0.06)', border: '1px solid rgba(244,198,96,0.18)', borderRadius: 6, padding: '3px 10px' }}>
-            <span style={{ fontSize: 10, color: '#f4c660' }}>⚠ 維基未找到，以 AI 知識為準</span>
-          </div>
-        )}
+
+        {/* 確認存檔 */}
+        <button onClick={handleSave} disabled={saving} style={{
+          flexShrink: 0, padding: '8px 14px',
+          background: saving ? 'rgba(26,52,112,0.5)' : 'linear-gradient(135deg, #4a72c4, #a8c0e8)',
+          color: saving ? '#6889b8' : '#08142e',
+          border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700,
+          display: 'flex', alignItems: 'center', gap: 5,
+          boxShadow: saving ? 'none' : '0 2px 10px rgba(74,114,196,0.4)',
+        }}>
+          {saving
+            ? <><span style={{ width: 11, height: 11, borderRadius: '50%', border: '2px solid #6889b8', borderTopColor: 'transparent', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />儲存</>
+            : '✓ 存檔'}
+        </button>
       </div>
 
-      {/* ── Scrollable content ── */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 0' }}>
+      {/* 重查 hint + 魚名對應提示 */}
+      <div style={{
+        flexShrink: 0,
+        padding: '7px 14px',
+        background: 'rgba(8,20,46,0.6)',
+        borderBottom: '1px solid rgba(168,192,232,0.06)',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      }}>
+        <span style={{ fontSize: 11, color: '#6889b8' }}>
+          {editFields.matched_name && editFields.matched_name !== name
+            ? `「${name}」→「${editFields.matched_name}」`
+            : !wikiTitle ? '⚠ 維基未找到，以 AI 知識為準' : '資料已確認，可修改後存檔'}
+        </span>
+        <button onClick={onRetry} style={{
+          padding: '4px 10px', background: 'rgba(168,192,232,0.07)',
+          border: '1px solid rgba(168,192,232,0.15)',
+          borderRadius: 8, fontSize: 11, color: '#a8c0e8', fontWeight: 600,
+        }}>↩ 重查</button>
+      </div>
 
-        {/* Cover photo chooser */}
-        <div style={{ marginBottom: 20 }}>
-          <label style={S.label}>封面照片</label>
+      {/* ── Scrollable fields ── */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px 0' }}>
 
-          {/* AI image */}
-          {aiImg && (
-            <div style={{ marginBottom: 10 }}>
-              <p style={{ fontSize: 10, color: '#3a5888', marginBottom: 6, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>AI 辨識圖</p>
-              <div
-                onClick={() => setCoverSource('ai')}
-                style={{
-                  position: 'relative', display: 'inline-block', cursor: 'pointer',
-                  borderRadius: 10, overflow: 'hidden',
+        {/* Cover selector */}
+        {(aiImg || photos.length > 0) && (
+          <div style={{ marginBottom: 20 }}>
+            <label style={S.label}>選擇封面</label>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {aiImg && (
+                <div onClick={() => setCoverSource('ai')} style={{
+                  position: 'relative', cursor: 'pointer', borderRadius: 10, overflow: 'hidden',
                   border: `2px solid ${coverSource === 'ai' ? '#a8c0e8' : 'rgba(168,192,232,0.2)'}`,
                   transition: 'border-color 0.2s',
-                }}
-              >
-                <img
-                  src={`/api/image-proxy?url=${encodeURIComponent(aiImg)}`}
-                  alt="AI封面"
-                  style={{ width: 88, height: 88, objectFit: 'cover', display: 'block' }}
-                  onError={e => { e.target.style.display='none' }}
-                />
-                {coverSource === 'ai' && (
-                  <div style={{ position: 'absolute', bottom: 4, left: '50%', transform: 'translateX(-50%)', background: 'rgba(74,114,196,0.92)', borderRadius: 4, padding: '2px 6px', fontSize: 9, color: '#fff', whiteSpace: 'nowrap', fontWeight: 700 }}>✓ 封面</div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* User photos as cover options */}
-          {photos.length > 0 && (
-            <div>
-              <p style={{ fontSize: 10, color: '#3a5888', marginBottom: 6, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>我的照片</p>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {photos.map((p, i) => (
-                  <div
-                    key={i}
-                    onClick={() => setCoverSource(`user:${i}`)}
-                    style={{
-                      position: 'relative', cursor: 'pointer',
-                      borderRadius: 10, overflow: 'hidden',
-                      border: `2px solid ${coverSource === `user:${i}` ? '#a8c0e8' : 'rgba(168,192,232,0.2)'}`,
-                      transition: 'border-color 0.2s',
-                    }}
-                  >
-                    <img src={p.preview} style={{ width: 72, height: 72, objectFit: 'cover', display: 'block' }} />
-                    {coverSource === `user:${i}` && (
-                      <div style={{ position: 'absolute', bottom: 3, left: '50%', transform: 'translateX(-50%)', background: 'rgba(74,114,196,0.92)', borderRadius: 4, padding: '2px 5px', fontSize: 9, color: '#fff', whiteSpace: 'nowrap', fontWeight: 700 }}>✓ 封面</div>
-                    )}
+                }}>
+                  <img src={`/api/image-proxy?url=${encodeURIComponent(aiImg)}`} alt="AI"
+                    style={{ width: 80, height: 80, objectFit: 'cover', display: 'block' }}
+                    onError={e => e.target.style.display = 'none'} />
+                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '2px 0', background: 'rgba(8,20,46,0.7)', textAlign: 'center', fontSize: 9, color: coverSource === 'ai' ? '#a8c0e8' : '#6889b8', fontWeight: 700 }}>
+                    {coverSource === 'ai' ? '✓ 封面' : 'AI 圖'}
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
+              {photos.map((p, i) => (
+                <div key={i} onClick={() => setCoverSource(`user:${i}`)} style={{
+                  position: 'relative', cursor: 'pointer', borderRadius: 10, overflow: 'hidden',
+                  border: `2px solid ${coverSource === `user:${i}` ? '#a8c0e8' : 'rgba(168,192,232,0.2)'}`,
+                  transition: 'border-color 0.2s',
+                }}>
+                  <img src={p.preview} style={{ width: 80, height: 80, objectFit: 'cover', display: 'block' }} />
+                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '2px 0', background: 'rgba(8,20,46,0.7)', textAlign: 'center', fontSize: 9, color: coverSource === `user:${i}` ? '#a8c0e8' : '#6889b8', fontWeight: 700 }}>
+                    {coverSource === `user:${i}` ? '✓ 封面' : `照片${i + 1}`}
+                  </div>
+                </div>
+              ))}
             </div>
-          )}
-
-          {!aiImg && photos.length === 0 && (
-            <p style={{ fontSize: 12, color: '#3a5888' }}>儲存後可在詳細頁上傳照片</p>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Category */}
-        <div style={{ marginBottom: 20 }}>
+        <div style={{ marginBottom: 18 }}>
           <label style={S.label}>分類</label>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {CATEGORIES.map(c => (
@@ -186,7 +162,7 @@ function PreviewOverlay({ name, fields, category, photos, onConfirm, onCancel, o
           </div>
         </div>
 
-        {/* Fields */}
+        {/* All editable fields */}
         {Object.entries(FIELD_LABELS).map(([key, label]) => (
           <div key={key} style={{ marginBottom: 14 }}>
             <label style={S.label}>{label}</label>
@@ -200,41 +176,7 @@ function PreviewOverlay({ name, fields, category, photos, onConfirm, onCancel, o
             )}
           </div>
         ))}
-        <div style={{ height: 8 }} />
-      </div>
-
-      {/* ── Bottom action bar ── */}
-      <div style={{
-        flexShrink: 0, display: 'flex', gap: 8,
-        padding: '12px 16px',
-        paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))',
-        background: 'rgba(8,20,46,0.98)',
-        borderTop: '1px solid rgba(168,192,232,0.10)',
-      }}>
-        <button onClick={onCancel} style={{
-          flex: 1, padding: '13px 6px',
-          background: 'rgba(168,192,232,0.06)', border: '1px solid rgba(168,192,232,0.2)',
-          borderRadius: 12, fontSize: 13, fontWeight: 600, color: '#a8c0e8',
-        }}>✕ 取消</button>
-
-        <button onClick={onRetry} style={{
-          padding: '13px 14px',
-          background: 'rgba(168,192,232,0.08)', border: '1px solid rgba(168,192,232,0.2)',
-          borderRadius: 12, fontSize: 13, fontWeight: 600, color: '#a8c0e8',
-        }}>↩ 重查</button>
-
-        <button onClick={handleConfirmClick} disabled={saving} style={{
-          flex: 2, padding: '13px 6px',
-          background: saving ? 'rgba(26,52,112,0.5)' : 'linear-gradient(135deg, #4a72c4, #a8c0e8)',
-          color: saving ? '#6889b8' : '#08142e',
-          borderRadius: 12, fontSize: 13, fontWeight: 700,
-          boxShadow: saving ? 'none' : '0 4px 16px rgba(74,114,196,0.4)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-        }}>
-          {saving
-            ? <><span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid #6889b8', borderTopColor: 'transparent', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />儲存中</>
-            : '✓ 確認存檔'}
-        </button>
+        <div style={{ height: 24 }} />
       </div>
     </div>
   )
@@ -295,11 +237,6 @@ export default function AddPage() {
       const saveName   = confirmedFields.matched_name || name.trim()
       const aiImageUrl = confirmedFields.suggested_image || null
 
-      // determine initial cover
-      let initialCover = null
-      if (coverIsAi && aiImageUrl)        initialCover = aiImageUrl
-      else if (coverUserIdx !== null)      initialCover = null // will be set after upload
-
       const { data: fish, error: insertErr } = await supabase
         .from('fishes')
         .insert({
@@ -315,12 +252,11 @@ export default function AddPage() {
           description:     confirmedFields.description     || null,
           cover_photo:    coverIsAi ? aiImageUrl : null,
           ai_cover_photo: aiImageUrl,
-          photos: [],
+          photos:         [],
         })
         .select().single()
       if (insertErr) throw insertErr
 
-      // upload user photos
       if (photos.length > 0) {
         const urls = []
         for (const { file } of photos) {
@@ -330,7 +266,7 @@ export default function AddPage() {
           const { data } = supabase.storage.from('fish-photos').getPublicUrl(path)
           urls.push(data.publicUrl)
         }
-        const userCover = coverUserIdx !== null ? urls[coverUserIdx] ?? urls[0] : null
+        const userCover = coverUserIdx !== null ? (urls[coverUserIdx] ?? urls[0]) : null
         await supabase.from('fishes').update({
           photos: urls,
           cover_photo: userCover || (coverIsAi ? aiImageUrl : urls[0]),
@@ -380,12 +316,9 @@ export default function AddPage() {
 
       <div style={{ padding: '20px 16px 120px' }}>
 
-        {/* Fish name + AI button */}
         <section style={{ marginBottom: 20 }}>
           <label style={S.label}>魚種名稱</label>
-          <p style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 8, lineHeight: 1.6 }}>
-            輸入市場俗名、台語名都可以
-          </p>
+          <p style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 8, lineHeight: 1.6 }}>輸入市場俗名、台語名都可以</p>
           <div style={{ display: 'flex', gap: 8 }}>
             <input
               value={name} onChange={e => setName(e.target.value)}
@@ -394,50 +327,35 @@ export default function AddPage() {
               onFocus={focusIn} onBlur={focusOut}
               onKeyDown={e => e.key === 'Enter' && handleAILookup()}
             />
-            <button
-              onClick={handleAILookup} disabled={aiLoading || !name.trim()}
-              style={{
-                padding: '0 14px', minWidth: 110,
-                background: aiLoading ? 'rgba(26,52,112,0.6)' : 'linear-gradient(135deg, #4a72c4, #a8c0e8)',
-                color: aiLoading ? 'var(--text-muted)' : 'var(--bg-abyss)',
-                borderRadius: 10, fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
-                border: aiLoading ? '1px solid var(--border-subtle)' : 'none',
-                boxShadow: aiLoading ? 'none' : '0 2px 12px rgba(74,114,196,0.45)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              }}
-            >
+            <button onClick={handleAILookup} disabled={aiLoading || !name.trim()} style={{
+              padding: '0 14px', minWidth: 110,
+              background: aiLoading ? 'rgba(26,52,112,0.6)' : 'linear-gradient(135deg, #4a72c4, #a8c0e8)',
+              color: aiLoading ? 'var(--text-muted)' : 'var(--bg-abyss)',
+              borderRadius: 10, fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
+              border: aiLoading ? '1px solid var(--border-subtle)' : 'none',
+              boxShadow: aiLoading ? 'none' : '0 2px 12px rgba(74,114,196,0.45)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            }}>
               {aiLoading
                 ? <><span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(74,114,196,0.5)', borderTopColor: 'transparent', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />查詢中</>
                 : '✦ AI 辨識加入魚池'}
             </button>
           </div>
           {error && (
-            <div style={{ marginTop: 10, padding: '9px 12px', background: 'rgba(255,128,102,0.08)', border: '1px solid rgba(255,128,102,0.3)', borderRadius: 8, color: 'var(--accent-coral)', fontSize: 12 }}>
-              {error}
-            </div>
+            <div style={{ marginTop: 10, padding: '9px 12px', background: 'rgba(255,128,102,0.08)', border: '1px solid rgba(255,128,102,0.3)', borderRadius: 8, color: 'var(--accent-coral)', fontSize: 12 }}>{error}</div>
           )}
         </section>
 
-        {/* Photos */}
         <section style={{ marginBottom: 24 }}>
-          <label style={{ ...S.label, marginBottom: 4 }}>
-            我的照片 <span style={{ color: 'var(--text-dim)', fontWeight: 400 }}>({photos.length}/10)</span>
-          </label>
-          <p style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 8 }}>
-            可先上傳，辨識完可在預覽頁選封面
-          </p>
+          <label style={{ ...S.label, marginBottom: 4 }}>我的照片 <span style={{ color: 'var(--text-dim)', fontWeight: 400 }}>({photos.length}/10)</span></label>
+          <p style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 8 }}>可先上傳，辨識完可在預覽頁選封面</p>
           <input ref={fileInputRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handlePhotoSelect} />
           {photos.length > 0 ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
               {photos.map((p, i) => (
                 <div key={i} style={{ position: 'relative', aspectRatio: '1', borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
                   <img src={p.preview} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  <button onClick={() => removePhoto(i)} style={{
-                    position: 'absolute', top: 5, right: 5, width: 22, height: 22, borderRadius: '50%',
-                    background: 'rgba(8,20,46,0.85)', border: '1px solid rgba(255,128,102,0.5)',
-                    color: 'var(--accent-coral)', fontSize: 13,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>×</button>
+                  <button onClick={() => removePhoto(i)} style={{ position: 'absolute', top: 5, right: 5, width: 22, height: 22, borderRadius: '50%', background: 'rgba(8,20,46,0.85)', border: '1px solid rgba(255,128,102,0.5)', color: 'var(--accent-coral)', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
                 </div>
               ))}
               {photos.length < 10 && (
@@ -445,12 +363,7 @@ export default function AddPage() {
               )}
             </div>
           ) : (
-            <button onClick={() => fileInputRef.current?.click()} style={{
-              width: '100%', padding: '26px 16px', borderRadius: 12,
-              background: 'rgba(26,52,112,0.35)', border: '1px dashed var(--border-mid)',
-              color: 'var(--text-muted)', fontSize: 13,
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7,
-            }}>
+            <button onClick={() => fileInputRef.current?.click()} style={{ width: '100%', padding: '26px 16px', borderRadius: 12, background: 'rgba(26,52,112,0.35)', border: '1px dashed var(--border-mid)', color: 'var(--text-muted)', fontSize: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }}>
               <span style={{ fontSize: 28, opacity: 0.6 }}>📷</span>
               <span>點擊上傳照片（最多 10 張）</span>
             </button>
@@ -460,8 +373,8 @@ export default function AddPage() {
         <div style={{ padding: '12px 14px', borderRadius: 10, background: 'rgba(74,114,196,0.08)', border: '1px solid rgba(74,114,196,0.18)', fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.8 }}>
           <span style={{ color: 'var(--accent-sky)', fontWeight: 600 }}>使用說明</span><br />
           1. 輸入魚名 → 點「AI 辨識加入魚池」<br />
-          2. 預覽頁確認資料、選封面、修改欄位<br />
-          3. 確認正確 → 存檔 ／ 不對 → 取消或重查
+          2. 預覽頁右上角直接按「✓ 存檔」<br />
+          3. 不對 → 左上角「取消」或右側「↩ 重查」
         </div>
       </div>
     </div>
