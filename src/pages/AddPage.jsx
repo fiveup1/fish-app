@@ -22,6 +22,7 @@ const focusIn  = e => e.target.style.borderColor = 'var(--border-active)'
 const focusOut = e => e.target.style.borderColor = 'var(--border-subtle)'
 
 /* ── PreviewOverlay ─────────────────────────────────────── */
+/* ── PreviewOverlay ─────────────────────────────────────── */
 function PreviewOverlay({ name, fields, category, photos, saving, onConfirm, onCancel, onRetry }) {
   const [cat, setCat]               = useState(category)
   const [editFields, setEditFields] = useState(fields)
@@ -40,7 +41,14 @@ function PreviewOverlay({ name, fields, category, photos, saving, onConfirm, onC
   }
 
   return (
-    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 200, background: '#08142e', display: 'flex', flexDirection: 'column', animation: 'bubbleUp 0.25s var(--ease-ocean)' }}>
+    <div style={{
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      zIndex: 200,
+      background: '#08142e',
+      display: 'flex', flexDirection: 'column',
+      overflow: 'hidden',                        /* ← prevent any horizontal bleed */
+      animation: 'bubbleUp 0.25s var(--ease-ocean)',
+    }}>
 
       {/* ── TOP BAR: 取消 / 標題 / 存檔 ── */}
       <div style={{
@@ -51,7 +59,6 @@ function PreviewOverlay({ name, fields, category, photos, saving, onConfirm, onC
         borderBottom: '1px solid rgba(168,192,232,0.10)',
         display: 'flex', alignItems: 'center', gap: 8,
       }}>
-        {/* 取消 */}
         <button onClick={onCancel} style={{
           flexShrink: 0, padding: '8px 14px',
           background: 'rgba(168,192,232,0.06)',
@@ -59,13 +66,12 @@ function PreviewOverlay({ name, fields, category, photos, saving, onConfirm, onC
           borderRadius: 10, fontSize: 13, fontWeight: 600, color: '#a8c0e8',
         }}>取消</button>
 
-        {/* 標題 */}
         <div style={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 700, color: '#f0f6ff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {editFields.matched_name || name}
           </div>
           {wikiTitle && (
-            <div style={{ fontSize: 10, color: '#6889b8', marginTop: 1 }}>
+            <div style={{ fontSize: 10, color: '#6889b8', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               📖 {wikiUrl
                 ? <a href={wikiUrl} target="_blank" rel="noreferrer" style={{ color: '#a8c0e8', textDecoration: 'underline dotted' }}>{wikiTitle}</a>
                 : wikiTitle}
@@ -73,7 +79,6 @@ function PreviewOverlay({ name, fields, category, photos, saving, onConfirm, onC
           )}
         </div>
 
-        {/* 確認存檔 */}
         <button onClick={handleSave} disabled={saving} style={{
           flexShrink: 0, padding: '8px 14px',
           background: saving ? 'rgba(26,52,112,0.5)' : 'linear-gradient(135deg, #4a72c4, #a8c0e8)',
@@ -88,56 +93,57 @@ function PreviewOverlay({ name, fields, category, photos, saving, onConfirm, onC
         </button>
       </div>
 
-      {/* 重查 hint + 魚名對應提示 */}
+      {/* 魚名對應 + 重查 */}
       <div style={{
         flexShrink: 0,
-        padding: '7px 14px',
+        padding: '6px 12px',
         background: 'rgba(8,20,46,0.6)',
         borderBottom: '1px solid rgba(168,192,232,0.06)',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
       }}>
-        <span style={{ fontSize: 11, color: '#6889b8' }}>
+        <span style={{ fontSize: 11, color: '#6889b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
           {editFields.matched_name && editFields.matched_name !== name
             ? `「${name}」→「${editFields.matched_name}」`
             : !wikiTitle ? '⚠ 維基未找到，以 AI 知識為準' : '資料已確認，可修改後存檔'}
         </span>
         <button onClick={onRetry} style={{
-          padding: '4px 10px', background: 'rgba(168,192,232,0.07)',
+          flexShrink: 0, padding: '4px 10px',
+          background: 'rgba(168,192,232,0.07)',
           border: '1px solid rgba(168,192,232,0.15)',
           borderRadius: 8, fontSize: 11, color: '#a8c0e8', fontWeight: 600,
         }}>↩ 重查</button>
       </div>
 
       {/* ── Scrollable fields ── */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px 0' }}>
+      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '14px 16px 0' }}>
 
         {/* Cover selector */}
         {(aiImg || photos.length > 0) && (
-          <div style={{ marginBottom: 20 }}>
+          <div style={{ marginBottom: 18 }}>
             <label style={S.label}>選擇封面</label>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {aiImg && (
                 <div onClick={() => setCoverSource('ai')} style={{
                   position: 'relative', cursor: 'pointer', borderRadius: 10, overflow: 'hidden',
                   border: `2px solid ${coverSource === 'ai' ? '#a8c0e8' : 'rgba(168,192,232,0.2)'}`,
-                  transition: 'border-color 0.2s',
+                  transition: 'border-color 0.2s', flexShrink: 0,
                 }}>
                   <img src={`/api/image-proxy?url=${encodeURIComponent(aiImg)}`} alt="AI"
                     style={{ width: 80, height: 80, objectFit: 'cover', display: 'block' }}
                     onError={e => e.target.style.display = 'none'} />
-                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '2px 0', background: 'rgba(8,20,46,0.7)', textAlign: 'center', fontSize: 9, color: coverSource === 'ai' ? '#a8c0e8' : '#6889b8', fontWeight: 700 }}>
+                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '2px 0', background: 'rgba(8,20,46,0.75)', textAlign: 'center', fontSize: 9, color: coverSource === 'ai' ? '#a8c0e8' : '#6889b8', fontWeight: 700 }}>
                     {coverSource === 'ai' ? '✓ 封面' : 'AI 圖'}
                   </div>
                 </div>
               )}
               {photos.map((p, i) => (
                 <div key={i} onClick={() => setCoverSource(`user:${i}`)} style={{
-                  position: 'relative', cursor: 'pointer', borderRadius: 10, overflow: 'hidden',
+                  position: 'relative', cursor: 'pointer', borderRadius: 10, overflow: 'hidden', flexShrink: 0,
                   border: `2px solid ${coverSource === `user:${i}` ? '#a8c0e8' : 'rgba(168,192,232,0.2)'}`,
                   transition: 'border-color 0.2s',
                 }}>
                   <img src={p.preview} style={{ width: 80, height: 80, objectFit: 'cover', display: 'block' }} />
-                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '2px 0', background: 'rgba(8,20,46,0.7)', textAlign: 'center', fontSize: 9, color: coverSource === `user:${i}` ? '#a8c0e8' : '#6889b8', fontWeight: 700 }}>
+                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '2px 0', background: 'rgba(8,20,46,0.75)', textAlign: 'center', fontSize: 9, color: coverSource === `user:${i}` ? '#a8c0e8' : '#6889b8', fontWeight: 700 }}>
                     {coverSource === `user:${i}` ? '✓ 封面' : `照片${i + 1}`}
                   </div>
                 </div>
@@ -162,17 +168,18 @@ function PreviewOverlay({ name, fields, category, photos, saving, onConfirm, onC
           </div>
         </div>
 
-        {/* All editable fields */}
+        {/* All editable fields — inputs constrained to container width */}
         {Object.entries(FIELD_LABELS).map(([key, label]) => (
           <div key={key} style={{ marginBottom: 14 }}>
             <label style={S.label}>{label}</label>
             {key === 'description' || key === 'cooking_methods' ? (
               <textarea value={editFields[key] || ''} onChange={e => setEditFields(f => ({ ...f, [key]: e.target.value }))}
-                rows={3} style={{ ...S.input, resize: 'vertical', lineHeight: 1.7 }}
+                rows={3} style={{ ...S.input, resize: 'vertical', lineHeight: 1.7, boxSizing: 'border-box' }}
                 onFocus={focusIn} onBlur={focusOut} />
             ) : (
               <input value={editFields[key] || ''} onChange={e => setEditFields(f => ({ ...f, [key]: e.target.value }))}
-                style={S.input} onFocus={focusIn} onBlur={focusOut} />
+                style={{ ...S.input, boxSizing: 'border-box' }}
+                onFocus={focusIn} onBlur={focusOut} />
             )}
           </div>
         ))}
@@ -182,7 +189,6 @@ function PreviewOverlay({ name, fields, category, photos, saving, onConfirm, onC
   )
 }
 
-/* ── Main AddPage ─────────────────────────────────────────── */
 export default function AddPage() {
   const navigate     = useNavigate()
   const fileInputRef = useRef(null)
