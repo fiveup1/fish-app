@@ -281,15 +281,12 @@ export default function AddPage() {
   }
 
   return (
-    <div style={{ height: '100%', overflowY: 'auto', position: 'relative', zIndex: 1 }}>
+    <div style={{ height: '100%', overflowY: 'auto', position: 'relative', zIndex: 1, overflowX: 'hidden' }}>
 
       {preview && (
         <PreviewOverlay
-          name={name}
-          fields={preview.fields}
-          category={preview.category}
-          photos={photos}
-          saving={saving}
+          name={name} fields={preview.fields} category={preview.category}
+          photos={photos} saving={saving}
           onConfirm={handleConfirm}
           onCancel={() => { setPreview(null); setSaving(false) }}
           onRetry={() => { setPreview(null); handleAILookup() }}
@@ -309,45 +306,48 @@ export default function AddPage() {
           background: 'rgba(168,192,232,0.1)', color: 'var(--text-secondary)',
           fontSize: 18, width: 34, height: 34, borderRadius: '50%',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          border: '1px solid var(--border-subtle)',
+          border: '1px solid var(--border-subtle)', flexShrink: 0,
         }}>←</button>
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 700 }}>新增海鮮</h2>
       </div>
 
-      <div style={{ padding: '20px 16px 120px' }}>
+      <div style={{ padding: '16px 16px 100px', maxWidth: '100%', boxSizing: 'border-box' }}>
 
-        <section style={{ marginBottom: 20 }}>
+        {/* Fish name */}
+        <section style={{ marginBottom: 18 }}>
           <label style={S.label}>魚種名稱</label>
           <p style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 8, lineHeight: 1.6 }}>輸入市場俗名、台語名都可以</p>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <input
-              value={name} onChange={e => setName(e.target.value)}
-              placeholder="例：石狗公、金花魚、三牙..."
-              style={{ ...S.input, flex: 1 }}
-              onFocus={focusIn} onBlur={focusOut}
-              onKeyDown={e => e.key === 'Enter' && handleAILookup()}
-            />
-            <button onClick={handleAILookup} disabled={aiLoading || !name.trim()} style={{
-              padding: '0 14px', minWidth: 110,
-              background: aiLoading ? 'rgba(26,52,112,0.6)' : 'linear-gradient(135deg, #4a72c4, #a8c0e8)',
-              color: aiLoading ? 'var(--text-muted)' : 'var(--bg-abyss)',
-              borderRadius: 10, fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
-              border: aiLoading ? '1px solid var(--border-subtle)' : 'none',
-              boxShadow: aiLoading ? 'none' : '0 2px 12px rgba(74,114,196,0.45)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            }}>
-              {aiLoading
-                ? <><span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(74,114,196,0.5)', borderTopColor: 'transparent', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />查詢中</>
-                : '✦ AI 辨識加入魚池'}
-            </button>
-          </div>
+          {/* input + button stacked to prevent horizontal overflow */}
+          <input
+            value={name} onChange={e => setName(e.target.value)}
+            placeholder="例：石狗公、金花魚、三牙..."
+            style={{ ...S.input, marginBottom: 8 }}
+            onFocus={focusIn} onBlur={focusOut}
+            onKeyDown={e => e.key === 'Enter' && handleAILookup()}
+          />
+          <button onClick={handleAILookup} disabled={aiLoading || !name.trim()} style={{
+            width: '100%', padding: '12px',
+            background: aiLoading ? 'rgba(26,52,112,0.6)' : 'linear-gradient(135deg, #4a72c4, #a8c0e8)',
+            color: aiLoading ? 'var(--text-muted)' : 'var(--bg-abyss)',
+            borderRadius: 10, fontSize: 13, fontWeight: 700,
+            border: aiLoading ? '1px solid var(--border-subtle)' : 'none',
+            boxShadow: aiLoading ? 'none' : '0 2px 12px rgba(74,114,196,0.45)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          }}>
+            {aiLoading
+              ? <><span style={{ width: 13, height: 13, borderRadius: '50%', border: '2px solid rgba(74,114,196,0.5)', borderTopColor: 'transparent', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />查詢中...</>
+              : '✦ AI 辨識加入魚池'}
+          </button>
           {error && (
             <div style={{ marginTop: 10, padding: '9px 12px', background: 'rgba(255,128,102,0.08)', border: '1px solid rgba(255,128,102,0.3)', borderRadius: 8, color: 'var(--accent-coral)', fontSize: 12 }}>{error}</div>
           )}
         </section>
 
-        <section style={{ marginBottom: 24 }}>
-          <label style={{ ...S.label, marginBottom: 4 }}>我的照片 <span style={{ color: 'var(--text-dim)', fontWeight: 400 }}>({photos.length}/10)</span></label>
+        {/* Photos */}
+        <section style={{ marginBottom: 20 }}>
+          <label style={{ ...S.label, marginBottom: 4 }}>
+            我的照片 <span style={{ color: 'var(--text-dim)', fontWeight: 400 }}>({photos.length}/10)</span>
+          </label>
           <p style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 8 }}>可先上傳，辨識完可在預覽頁選封面</p>
           <input ref={fileInputRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handlePhotoSelect} />
           {photos.length > 0 ? (
@@ -363,14 +363,14 @@ export default function AddPage() {
               )}
             </div>
           ) : (
-            <button onClick={() => fileInputRef.current?.click()} style={{ width: '100%', padding: '26px 16px', borderRadius: 12, background: 'rgba(26,52,112,0.35)', border: '1px dashed var(--border-mid)', color: 'var(--text-muted)', fontSize: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }}>
-              <span style={{ fontSize: 28, opacity: 0.6 }}>📷</span>
+            <button onClick={() => fileInputRef.current?.click()} style={{ width: '100%', padding: '22px 16px', borderRadius: 12, background: 'rgba(26,52,112,0.35)', border: '1px dashed var(--border-mid)', color: 'var(--text-muted)', fontSize: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }}>
+              <span style={{ fontSize: 26, opacity: 0.6 }}>📷</span>
               <span>點擊上傳照片（最多 10 張）</span>
             </button>
           )}
         </section>
 
-        <div style={{ padding: '12px 14px', borderRadius: 10, background: 'rgba(74,114,196,0.08)', border: '1px solid rgba(74,114,196,0.18)', fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.8 }}>
+        <div style={{ padding: '11px 13px', borderRadius: 10, background: 'rgba(74,114,196,0.08)', border: '1px solid rgba(74,114,196,0.18)', fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.8 }}>
           <span style={{ color: 'var(--accent-sky)', fontWeight: 600 }}>使用說明</span><br />
           1. 輸入魚名 → 點「AI 辨識加入魚池」<br />
           2. 預覽頁右上角直接按「✓ 存檔」<br />

@@ -49,24 +49,49 @@ function Lightbox({ photos, initialIndex, onClose }) {
         startX.current = null
       }}
     >
+      {/* Close */}
       <button onClick={onClose} style={{
         position: 'absolute', top: 'calc(var(--safe-top) + 12px)', right: 16,
-        width: 38, height: 38, borderRadius: '50%',
-        background: 'rgba(168,192,232,0.12)', border: '1px solid var(--border-mid)',
-        color: 'var(--text-primary)', fontSize: 20,
+        width: 40, height: 40, borderRadius: '50%',
+        background: 'rgba(8,20,46,0.85)', border: '1px solid rgba(168,192,232,0.35)',
+        color: '#f0f6ff', fontSize: 22,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>×</button>
+
+      {/* Counter */}
       <div style={{ position: 'absolute', top: 'calc(var(--safe-top) + 18px)', left: '50%', transform: 'translateX(-50%)', fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-muted)' }}>
         {idx + 1} / {photos.length}
       </div>
+
+      {/* Image */}
       <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '64px 0' }}>
         <img key={idx} src={photos[idx]} alt="" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', animation: 'bubbleUp 0.2s var(--ease-ocean)', borderRadius: 4 }} />
       </div>
+
+      {/* Left / Right arrows — solid background, clearly visible */}
       {photos.length > 1 && (
         <>
-          <button onClick={prev} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 38, height: 38, borderRadius: '50%', background: 'rgba(168,192,232,0.10)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', fontSize: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>‹</button>
-          <button onClick={next} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', width: 38, height: 38, borderRadius: '50%', background: 'rgba(168,192,232,0.10)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', fontSize: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>›</button>
-          <div style={{ position: 'absolute', bottom: 'calc(var(--safe-bottom) + 16px)', display: 'flex', gap: 6 }}>
+          <button onClick={prev} style={{
+            position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)',
+            width: 46, height: 46, borderRadius: 12,
+            background: 'rgba(13,29,69,0.90)',
+            border: '1px solid rgba(168,192,232,0.45)',
+            color: '#f0f6ff', fontSize: 26, fontWeight: 300,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 2px 12px rgba(8,20,46,0.6)',
+          }}>‹</button>
+          <button onClick={next} style={{
+            position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+            width: 46, height: 46, borderRadius: 12,
+            background: 'rgba(13,29,69,0.90)',
+            border: '1px solid rgba(168,192,232,0.45)',
+            color: '#f0f6ff', fontSize: 26, fontWeight: 300,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 2px 12px rgba(8,20,46,0.6)',
+          }}>›</button>
+
+          {/* Dot indicators */}
+          <div style={{ position: 'absolute', bottom: 'calc(var(--safe-bottom) + 16px)', display: 'flex', gap: 6, alignItems: 'center' }}>
             {photos.map((_, i) => (
               <button key={i} onClick={() => setIdx(i)} style={{ width: i === idx ? 18 : 6, height: 6, borderRadius: 3, background: i === idx ? 'var(--accent-sky)' : 'rgba(168,192,232,0.3)', transition: 'all 0.2s' }} />
             ))}
@@ -77,7 +102,6 @@ function Lightbox({ photos, initialIndex, onClose }) {
   )
 }
 
-/* ── DetailPage ─────────────────────────────────────────── */
 export default function DetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
