@@ -8,37 +8,31 @@ export default async function handler(req, res) {
 
   const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY
 
-  // ── Step 1: 查中文維基百科，搜尋魚名 ──────────────────────
+  // ── Step 1: 查中文維基百科 ────────────────────────────────
   let wikiSummary = ''
   let wikiTitle   = ''
   let wikiUrl     = ''
 
   try {
-    // 先搜尋，找出最相關的條目
     const searchRes = await fetch(
       `https://zh.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(name + ' 魚')}&srlimit=3&format=json&origin=*`
     )
     const searchData = await searchRes.json()
     const firstResult = searchData?.query?.search?.[0]
-
     if (firstResult) {
       wikiTitle = firstResult.title
-
-      // 取得該條目的摘要內容
       const summaryRes = await fetch(
         `https://zh.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(wikiTitle)}`
       )
       const summaryData = await summaryRes.json()
       if (summaryData.extract) {
-        wikiSummary = summaryData.extract.slice(0, 800) // 最多 800 字
+        wikiSummary = summaryData.extract.slice(0, 800)
         wikiUrl     = summaryData.content_urls?.desktop?.page || ''
       }
     }
-  } catch (_) {
-    // 維基查詢失敗不中斷，繼續用 AI 自身知識
-  }
+  } catch (_) {}
 
-  // ── Step 2: 把維基資料餵給 AI，整理成結構化 JSON ──────────
+  // ── Step 2: AI 整理資料 ───────────────────────────────────
   const wikiContext = wikiSummary
     ? `以下是維基百科關於「${wikiTitle}」的資料，請以此為準：\n${wikiSummary}\n\n`
     : `維基百科找不到相關資料，請用你自身的知識回答。\n\n`
@@ -61,6 +55,8 @@ ${wikiContext}請根據以上資料，整理出這種魚的完整資訊，只回
   "category": "只能填：魚、蝦、蟹、貝、花枝、章魚、其他"
 }`
 
+  let parsed = {}
+  let latin_name = ''
   try {
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -75,23 +71,72 @@ ${wikiContext}請根據以上資料，整理出這種魚的完整資訊，只回
         messages: [{ role: 'user', content: prompt }],
       }),
     })
-
     const aiData = await aiRes.json()
     if (aiData.error) throw new Error(aiData.error.message)
-
     const text = (aiData.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n')
     const jsonMatch = text.replace(/```json|```/g, '').match(/\{[\s\S]*\}/)
     if (!jsonMatch) throw new Error('AI 未回傳有效資料，請重試')
-    const parsed = JSON.parse(jsonMatch[0])
-
-    const { latin_name, ...rest } = parsed
-    return res.status(200).json({
-      ...rest,
-      latin_name,
-      wiki_title: wikiTitle || null,
-      wiki_url:   wikiUrl   || null,
-    })
+    const result = JSON.parse(jsonMatch[0])
+    latin_name = result.latin_name || ''
+    const { latin_name: _ln, ...rest } = result
+    parsed = rest
   } catch (e) {
     return res.status(500).json({ error: e.message })
   }
+
+  // ── Step 3: 找封面圖 iNaturalist → Wikipedia → GBIF ──────
+  let suggested_image = null
+
+  if (latin_name) {
+    // iNaturalist
+    try {
+      const inatRes = await fetch(
+        `https://api.inaturalist.org/v1/taxa?q=${encodeURIComponent(latin_name)}&rank=species&per_page=1`
+      )
+      const inatData = await inatRes.json()
+      const photo = inatData.results?.[0]?.default_photo?.medium_url
+      if (photo) suggested_image = photo
+    } catch (_) {}
+
+    // Wikipedia thumbnail
+    if (!suggested_image) {
+      try {
+        const wikiTitle2 = latin_name.replace(/ /g, '_')
+        const wRes = await fetch(
+          `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(wikiTitle2)}`
+        )
+        const wData = await wRes.json()
+        if (wData.thumbnail?.source) {
+          suggested_image = wData.thumbnail.source.replace(/\/\d+px-/, '/400px-')
+        }
+      } catch (_) {}
+    }
+
+    // GBIF
+    if (!suggested_image) {
+      try {
+        const gbifRes = await fetch(
+          `https://api.gbif.org/v1/species?name=${encodeURIComponent(latin_name)}&limit=1`
+        )
+        const gbifData = await gbifRes.json()
+        const key = gbifData.results?.[0]?.key
+        if (key) {
+          const mediaRes = await fetch(
+            `https://api.gbif.org/v1/occurrence/search?taxonKey=${key}&mediaType=StillImage&limit=1`
+          )
+          const mediaData = await mediaRes.json()
+          const img = mediaData.results?.[0]?.media?.[0]?.identifier
+          if (img) suggested_image = img
+        }
+      } catch (_) {}
+    }
+  }
+
+  return res.status(200).json({
+    ...parsed,
+    latin_name,
+    suggested_image,
+    wiki_title: wikiTitle || null,
+    wiki_url:   wikiUrl   || null,
+  })
 }

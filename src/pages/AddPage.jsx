@@ -36,82 +36,140 @@ const focusIn  = e => e.target.style.borderColor = 'var(--border-active)'
 const focusOut = e => e.target.style.borderColor = 'var(--border-subtle)'
 
 /* ── PreviewOverlay ─────────────────────────────────────── */
-function PreviewOverlay({ name, fields, category, onConfirm, onCancel, onRetry }) {
+function PreviewOverlay({ name, fields, category, photos, onConfirm, onCancel, onRetry, saving }) {
   const [cat, setCat]               = useState(category)
   const [editFields, setEditFields] = useState(fields)
+  // cover: 'ai' | 'user:{idx}' | null
+  const [coverSource, setCoverSource] = useState(fields.suggested_image ? 'ai' : (photos.length > 0 ? 'user:0' : null))
 
   const wikiTitle = fields.wiki_title
   const wikiUrl   = fields.wiki_url
+  const aiImg     = fields.suggested_image
+
+  // resolve current cover URL for preview
+  const currentCoverUrl = coverSource === 'ai'
+    ? `/api/image-proxy?url=${encodeURIComponent(aiImg)}`
+    : coverSource?.startsWith('user:')
+      ? photos[parseInt(coverSource.split(':')[1])]?.preview
+      : null
+
+  function handleConfirmClick() {
+    // pass cover choice back
+    const coverIsAi   = coverSource === 'ai'
+    const coverUserIdx = coverSource?.startsWith('user:') ? parseInt(coverSource.split(':')[1]) : null
+    onConfirm(editFields, cat, coverIsAi, coverUserIdx)
+  }
 
   return (
     <div style={{
-      position: 'fixed',
-      top: 0, left: 0, right: 0, bottom: 0,
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
       zIndex: 200,
       background: '#08142e',
-      display: 'flex',
-      flexDirection: 'column',
+      display: 'flex', flexDirection: 'column',
       animation: 'bubbleUp 0.25s var(--ease-ocean)',
     }}>
 
       {/* ── Header ── */}
       <div style={{
-        padding: 'calc(var(--safe-top) + 10px) 16px 14px',
+        padding: 'calc(var(--safe-top) + 10px) 16px 12px',
         background: 'rgba(8,20,46,0.98)',
         backdropFilter: 'blur(20px)',
         borderBottom: '1px solid rgba(168,192,232,0.10)',
         flexShrink: 0,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
           <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#a8c0e8', boxShadow: '0 0 8px rgba(168,192,232,0.7)' }} />
           <span style={{ fontSize: 11, color: '#a8c0e8', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em' }}>
-            AI 查詢結果 — 請確認資料
+            AI 查詢結果 — 確認後存檔
           </span>
         </div>
-
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: '#f0f6ff', marginBottom: 4 }}>
           {editFields.matched_name || name}
         </h2>
-
-        {/* 你輸入 → AI 判斷 */}
         {editFields.matched_name && editFields.matched_name !== name && (
           <p style={{ fontSize: 12, color: '#6889b8', marginBottom: 5 }}>
             你輸入「{name}」→ 對應到「{editFields.matched_name}」
           </p>
         )}
-
-        {/* 維基百科來源 */}
         {wikiTitle ? (
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 5,
-            background: 'rgba(168,192,232,0.08)',
-            border: '1px solid rgba(168,192,232,0.2)',
-            borderRadius: 6, padding: '3px 10px',
-          }}>
-            <span style={{ fontSize: 10, color: '#6889b8' }}>📖 維基百科來源：</span>
-            {wikiUrl ? (
-              <a href={wikiUrl} target="_blank" rel="noreferrer"
-                style={{ fontSize: 11, color: '#a8c0e8', textDecoration: 'underline', textDecorationStyle: 'dotted' }}>
-                {wikiTitle}
-              </a>
-            ) : (
-              <span style={{ fontSize: 11, color: '#a8c0e8' }}>{wikiTitle}</span>
-            )}
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(168,192,232,0.08)', border: '1px solid rgba(168,192,232,0.2)', borderRadius: 6, padding: '3px 10px' }}>
+            <span style={{ fontSize: 10, color: '#6889b8' }}>📖</span>
+            {wikiUrl
+              ? <a href={wikiUrl} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: '#a8c0e8', textDecoration: 'underline', textDecorationStyle: 'dotted' }}>{wikiTitle}</a>
+              : <span style={{ fontSize: 11, color: '#a8c0e8' }}>{wikiTitle}</span>
+            }
           </div>
         ) : (
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 5,
-            background: 'rgba(244,198,96,0.06)',
-            border: '1px solid rgba(244,198,96,0.18)',
-            borderRadius: 6, padding: '3px 10px',
-          }}>
-            <span style={{ fontSize: 10, color: '#f4c660' }}>⚠ 維基百科未找到，以 AI 知識為準</span>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(244,198,96,0.06)', border: '1px solid rgba(244,198,96,0.18)', borderRadius: 6, padding: '3px 10px' }}>
+            <span style={{ fontSize: 10, color: '#f4c660' }}>⚠ 維基未找到，以 AI 知識為準</span>
           </div>
         )}
       </div>
 
-      {/* ── Scrollable fields ── */}
+      {/* ── Scrollable content ── */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 0' }}>
+
+        {/* Cover photo chooser */}
+        <div style={{ marginBottom: 20 }}>
+          <label style={S.label}>封面照片</label>
+
+          {/* AI image */}
+          {aiImg && (
+            <div style={{ marginBottom: 10 }}>
+              <p style={{ fontSize: 10, color: '#3a5888', marginBottom: 6, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>AI 辨識圖</p>
+              <div
+                onClick={() => setCoverSource('ai')}
+                style={{
+                  position: 'relative', display: 'inline-block', cursor: 'pointer',
+                  borderRadius: 10, overflow: 'hidden',
+                  border: `2px solid ${coverSource === 'ai' ? '#a8c0e8' : 'rgba(168,192,232,0.2)'}`,
+                  transition: 'border-color 0.2s',
+                }}
+              >
+                <img
+                  src={`/api/image-proxy?url=${encodeURIComponent(aiImg)}`}
+                  alt="AI封面"
+                  style={{ width: 88, height: 88, objectFit: 'cover', display: 'block' }}
+                  onError={e => { e.target.style.display='none' }}
+                />
+                {coverSource === 'ai' && (
+                  <div style={{ position: 'absolute', bottom: 4, left: '50%', transform: 'translateX(-50%)', background: 'rgba(74,114,196,0.92)', borderRadius: 4, padding: '2px 6px', fontSize: 9, color: '#fff', whiteSpace: 'nowrap', fontWeight: 700 }}>✓ 封面</div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* User photos as cover options */}
+          {photos.length > 0 && (
+            <div>
+              <p style={{ fontSize: 10, color: '#3a5888', marginBottom: 6, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>我的照片</p>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {photos.map((p, i) => (
+                  <div
+                    key={i}
+                    onClick={() => setCoverSource(`user:${i}`)}
+                    style={{
+                      position: 'relative', cursor: 'pointer',
+                      borderRadius: 10, overflow: 'hidden',
+                      border: `2px solid ${coverSource === `user:${i}` ? '#a8c0e8' : 'rgba(168,192,232,0.2)'}`,
+                      transition: 'border-color 0.2s',
+                    }}
+                  >
+                    <img src={p.preview} style={{ width: 72, height: 72, objectFit: 'cover', display: 'block' }} />
+                    {coverSource === `user:${i}` && (
+                      <div style={{ position: 'absolute', bottom: 3, left: '50%', transform: 'translateX(-50%)', background: 'rgba(74,114,196,0.92)', borderRadius: 4, padding: '2px 5px', fontSize: 9, color: '#fff', whiteSpace: 'nowrap', fontWeight: 700 }}>✓ 封面</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {!aiImg && photos.length === 0 && (
+            <p style={{ fontSize: 12, color: '#3a5888' }}>儲存後可在詳細頁上傳照片</p>
+          )}
+        </div>
+
         {/* Category */}
         <div style={{ marginBottom: 20 }}>
           <label style={S.label}>分類</label>
@@ -128,73 +186,55 @@ function PreviewOverlay({ name, fields, category, onConfirm, onCancel, onRetry }
           </div>
         </div>
 
-        {/* All editable fields */}
+        {/* Fields */}
         {Object.entries(FIELD_LABELS).map(([key, label]) => (
           <div key={key} style={{ marginBottom: 14 }}>
             <label style={S.label}>{label}</label>
             {key === 'description' || key === 'cooking_methods' ? (
-              <textarea
-                value={editFields[key] || ''}
-                onChange={e => setEditFields(f => ({ ...f, [key]: e.target.value }))}
-                rows={3}
-                style={{ ...S.input, resize: 'vertical', lineHeight: 1.7 }}
-                onFocus={focusIn} onBlur={focusOut}
-              />
+              <textarea value={editFields[key] || ''} onChange={e => setEditFields(f => ({ ...f, [key]: e.target.value }))}
+                rows={3} style={{ ...S.input, resize: 'vertical', lineHeight: 1.7 }}
+                onFocus={focusIn} onBlur={focusOut} />
             ) : (
-              <input
-                value={editFields[key] || ''}
-                onChange={e => setEditFields(f => ({ ...f, [key]: e.target.value }))}
-                style={S.input}
-                onFocus={focusIn} onBlur={focusOut}
-              />
+              <input value={editFields[key] || ''} onChange={e => setEditFields(f => ({ ...f, [key]: e.target.value }))}
+                style={S.input} onFocus={focusIn} onBlur={focusOut} />
             )}
           </div>
         ))}
         <div style={{ height: 8 }} />
       </div>
 
-      {/* ── Sticky bottom action bar ── */}
+      {/* ── Bottom action bar ── */}
       <div style={{
-        flexShrink: 0,
-        display: 'flex',
-        gap: 8,
+        flexShrink: 0, display: 'flex', gap: 8,
         padding: '12px 16px',
         paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))',
         background: 'rgba(8,20,46,0.98)',
         borderTop: '1px solid rgba(168,192,232,0.10)',
       }}>
-        <button
-          onClick={onCancel}
-          style={{
-            flex: 1, padding: '13px 6px',
-            background: 'rgba(168,192,232,0.06)',
-            border: '1px solid rgba(168,192,232,0.2)',
-            borderRadius: 12, fontSize: 13, fontWeight: 600,
-            color: '#a8c0e8',
-          }}
-        >✕ 取消</button>
+        <button onClick={onCancel} style={{
+          flex: 1, padding: '13px 6px',
+          background: 'rgba(168,192,232,0.06)', border: '1px solid rgba(168,192,232,0.2)',
+          borderRadius: 12, fontSize: 13, fontWeight: 600, color: '#a8c0e8',
+        }}>✕ 取消</button>
 
-        <button
-          onClick={onRetry}
-          style={{
-            padding: '13px 14px',
-            background: 'rgba(168,192,232,0.08)',
-            border: '1px solid rgba(168,192,232,0.2)',
-            borderRadius: 12, fontSize: 13, fontWeight: 600,
-            color: '#a8c0e8',
-          }}
-        >↩ 重查</button>
+        <button onClick={onRetry} style={{
+          padding: '13px 14px',
+          background: 'rgba(168,192,232,0.08)', border: '1px solid rgba(168,192,232,0.2)',
+          borderRadius: 12, fontSize: 13, fontWeight: 600, color: '#a8c0e8',
+        }}>↩ 重查</button>
 
-        <button
-          onClick={() => onConfirm(editFields, cat)}
-          style={{
-            flex: 2, padding: '13px 6px',
-            background: 'linear-gradient(135deg, #4a72c4, #a8c0e8)',
-            color: '#08142e',
-            borderRadius: 12, fontSize: 13, fontWeight: 700,
-            boxShadow: '0 4px 16px rgba(74,114,196,0.4)',
-          }}
-        >✓ 確認加入圖鑑</button>
+        <button onClick={handleConfirmClick} disabled={saving} style={{
+          flex: 2, padding: '13px 6px',
+          background: saving ? 'rgba(26,52,112,0.5)' : 'linear-gradient(135deg, #4a72c4, #a8c0e8)',
+          color: saving ? '#6889b8' : '#08142e',
+          borderRadius: 12, fontSize: 13, fontWeight: 700,
+          boxShadow: saving ? 'none' : '0 4px 16px rgba(74,114,196,0.4)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+        }}>
+          {saving
+            ? <><span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid #6889b8', borderTopColor: 'transparent', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />儲存中</>
+            : '✓ 確認存檔'}
+        </button>
       </div>
     </div>
   )
@@ -223,7 +263,6 @@ export default function AddPage() {
       })
       const data = await res.json()
       if (data.error) throw new Error(data.error)
-
       const { latin_name, ...rest } = data
       const ruleCategory = inferCategory(name.trim()) || inferCategory(rest.matched_name || '')
       const resolved     = ruleCategory || rest.category || '其他'
@@ -237,9 +276,7 @@ export default function AddPage() {
 
   function handlePhotoSelect(e) {
     const files = Array.from(e.target.files)
-    const toAdd = files.slice(0, 10 - photos.length).map(f => ({
-      file: f, preview: URL.createObjectURL(f),
-    }))
+    const toAdd = files.slice(0, 10 - photos.length).map(f => ({ file: f, preview: URL.createObjectURL(f) }))
     setPhotos(prev => [...prev, ...toAdd])
   }
 
@@ -252,30 +289,38 @@ export default function AddPage() {
     })
   }
 
-  async function handleConfirm(confirmedFields, confirmedCat) {
-    setPreview(null); setSaving(true); setError('')
+  async function handleConfirm(confirmedFields, confirmedCat, coverIsAi, coverUserIdx) {
+    setSaving(true); setError('')
     try {
-      const saveName = confirmedFields.matched_name || name.trim()
+      const saveName   = confirmedFields.matched_name || name.trim()
+      const aiImageUrl = confirmedFields.suggested_image || null
+
+      // determine initial cover
+      let initialCover = null
+      if (coverIsAi && aiImageUrl)        initialCover = aiImageUrl
+      else if (coverUserIdx !== null)      initialCover = null // will be set after upload
+
       const { data: fish, error: insertErr } = await supabase
         .from('fishes')
         .insert({
           name:            saveName,
           category:        confirmedCat,
-          scientific_name: confirmedFields.scientific_name  || null,
-          common_names:    confirmedFields.common_names     || null,
-          flavor:          confirmedFields.flavor           || null,
-          texture:         confirmedFields.texture          || null,
-          market_price:    confirmedFields.market_price     ? parseFloat(confirmedFields.market_price)  : null,
-          cooking_methods: confirmedFields.cooking_methods  || null,
-          habitat_depth:   confirmedFields.habitat_depth    ? parseFloat(confirmedFields.habitat_depth) : null,
-          description:     confirmedFields.description      || null,
-          cover_photo:    null,
-          ai_cover_photo: null,
-          photos:         [],
+          scientific_name: confirmedFields.scientific_name || null,
+          common_names:    confirmedFields.common_names    || null,
+          flavor:          confirmedFields.flavor          || null,
+          texture:         confirmedFields.texture         || null,
+          market_price:    confirmedFields.market_price    ? parseFloat(confirmedFields.market_price)  : null,
+          cooking_methods: confirmedFields.cooking_methods || null,
+          habitat_depth:   confirmedFields.habitat_depth   ? parseFloat(confirmedFields.habitat_depth) : null,
+          description:     confirmedFields.description     || null,
+          cover_photo:    coverIsAi ? aiImageUrl : null,
+          ai_cover_photo: aiImageUrl,
+          photos: [],
         })
         .select().single()
       if (insertErr) throw insertErr
 
+      // upload user photos
       if (photos.length > 0) {
         const urls = []
         for (const { file } of photos) {
@@ -285,12 +330,16 @@ export default function AddPage() {
           const { data } = supabase.storage.from('fish-photos').getPublicUrl(path)
           urls.push(data.publicUrl)
         }
-        await supabase.from('fishes').update({ photos: urls, cover_photo: urls[0] }).eq('id', fish.id)
+        const userCover = coverUserIdx !== null ? urls[coverUserIdx] ?? urls[0] : null
+        await supabase.from('fishes').update({
+          photos: urls,
+          cover_photo: userCover || (coverIsAi ? aiImageUrl : urls[0]),
+        }).eq('id', fish.id)
       }
+
       navigate(`/fish/${fish.id}`)
     } catch (e) {
       setError('儲存失敗：' + e.message)
-    } finally {
       setSaving(false)
     }
   }
@@ -303,8 +352,10 @@ export default function AddPage() {
           name={name}
           fields={preview.fields}
           category={preview.category}
+          photos={photos}
+          saving={saving}
           onConfirm={handleConfirm}
-          onCancel={() => setPreview(null)}
+          onCancel={() => { setPreview(null); setSaving(false) }}
           onRetry={() => { setPreview(null); handleAILookup() }}
         />
       )}
@@ -337,22 +388,19 @@ export default function AddPage() {
           </p>
           <div style={{ display: 'flex', gap: 8 }}>
             <input
-              value={name}
-              onChange={e => setName(e.target.value)}
+              value={name} onChange={e => setName(e.target.value)}
               placeholder="例：石狗公、金花魚、三牙..."
               style={{ ...S.input, flex: 1 }}
               onFocus={focusIn} onBlur={focusOut}
               onKeyDown={e => e.key === 'Enter' && handleAILookup()}
             />
             <button
-              onClick={handleAILookup}
-              disabled={aiLoading || !name.trim()}
+              onClick={handleAILookup} disabled={aiLoading || !name.trim()}
               style={{
                 padding: '0 14px', minWidth: 110,
                 background: aiLoading ? 'rgba(26,52,112,0.6)' : 'linear-gradient(135deg, #4a72c4, #a8c0e8)',
                 color: aiLoading ? 'var(--text-muted)' : 'var(--bg-abyss)',
-                borderRadius: 10, fontSize: 12, fontWeight: 700,
-                whiteSpace: 'nowrap', transition: 'all 0.2s',
+                borderRadius: 10, fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
                 border: aiLoading ? '1px solid var(--border-subtle)' : 'none',
                 boxShadow: aiLoading ? 'none' : '0 2px 12px rgba(74,114,196,0.45)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
@@ -376,7 +424,7 @@ export default function AddPage() {
             我的照片 <span style={{ color: 'var(--text-dim)', fontWeight: 400 }}>({photos.length}/10)</span>
           </label>
           <p style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 8 }}>
-            可先上傳照片，確認 AI 資料後一起儲存
+            可先上傳，辨識完可在預覽頁選封面
           </p>
           <input ref={fileInputRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handlePhotoSelect} />
           {photos.length > 0 ? (
@@ -390,9 +438,6 @@ export default function AddPage() {
                     color: 'var(--accent-coral)', fontSize: 13,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>×</button>
-                  {i === 0 && (
-                    <div style={{ position: 'absolute', bottom: 4, left: 4, background: 'rgba(74,114,196,0.88)', borderRadius: 4, padding: '1px 6px', fontSize: 9, color: '#fff' }}>封面</div>
-                  )}
                 </div>
               ))}
               {photos.length < 10 && (
@@ -415,16 +460,9 @@ export default function AddPage() {
         <div style={{ padding: '12px 14px', borderRadius: 10, background: 'rgba(74,114,196,0.08)', border: '1px solid rgba(74,114,196,0.18)', fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.8 }}>
           <span style={{ color: 'var(--accent-sky)', fontWeight: 600 }}>使用說明</span><br />
           1. 輸入魚名 → 點「AI 辨識加入魚池」<br />
-          2. 預覽時會顯示維基百科來源，可點連結核對<br />
-          3. 確認正確 → 儲存 ／ 不對 → 取消或重查
+          2. 預覽頁確認資料、選封面、修改欄位<br />
+          3. 確認正確 → 存檔 ／ 不對 → 取消或重查
         </div>
-
-        {saving && (
-          <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: 'var(--text-muted)', fontSize: 13 }}>
-            <div style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid var(--accent-sky)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
-            儲存中...
-          </div>
-        )}
       </div>
     </div>
   )
