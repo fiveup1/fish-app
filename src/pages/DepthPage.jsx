@@ -10,23 +10,53 @@ const DEPTH_ZONES = [
   { name: '深海帶',   range: [500,  3000],  color: '#3a5a7a' },
 ]
 
-const CONTAINER_H  = 1200   // total scrollable height (px)
-const CARD_W       = 72     // card width
-const CARD_H       = 96     // card height (photo + overlay name, = CARD_W + 24)
-const COL_GAP      = 8      // gap between columns
+const CONTAINER_H  = 1200
+const CARD_W       = 72
+const CARD_H       = 96   // 圖片 72 + 名稱漸層區 24
+const COL_GAP      = 8
 const LEFT_RULER_W = 52
 
-// 分段線性映射：0-100m 佔 70%，100-500m 佔 20%，500-3000m 佔 10%
 function getDepthY(depth, h) {
-  const MAX_DEPTH = 3000
-  const d = Math.min(depth, MAX_DEPTH)
-  if (d <= 100) {
-    return (d / 100) * h * 0.70
-  } else if (d <= 500) {
-    return h * 0.70 + ((d - 100) / 400) * h * 0.20
-  } else {
-    return h * 0.90 + ((d - 500) / 2500) * h * 0.10
+  const d = Math.min(depth, 3000)
+  if (d <= 100)  return (d / 100) * h * 0.70
+  if (d <= 500)  return h * 0.70 + ((d - 100) / 400) * h * 0.20
+  return h * 0.90 + ((d - 500) / 2500) * h * 0.10
+}
+
+/**
+ * 為每條魚分配 column，規則：
+ * 掃描已分配的魚，若某個 column 的最後一張卡片底部 < 目前魚的頂部，就可以放進去。
+ * 否則開新欄。這樣保證所有卡片在 Y 軸完全不重疊。
+ */
+function assignColumns(fishes, containerH) {
+  // fishes 已依 habitat_depth 升序
+  // colBottoms[col] = 該欄目前最底部的 Y px
+  const colBottoms = []
+  const map = {}         // fish.id → col index
+
+  for (const fish of fishes) {
+    const centerY = getDepthY(fish.habitat_depth, containerH) + 40
+    const topY    = centerY - CARD_H / 2
+    const bottomY = centerY + CARD_H / 2 + 4   // +4 小間距
+
+    // 找第一個放得下的 column
+    let placed = false
+    for (let c = 0; c < colBottoms.length; c++) {
+      if (colBottoms[c] <= topY) {
+        map[fish.id] = c
+        colBottoms[c] = bottomY
+        placed = true
+        break
+      }
+    }
+    if (!placed) {
+      // 開新欄
+      map[fish.id] = colBottoms.length
+      colBottoms.push(bottomY)
+    }
   }
+
+  return { map, totalCols: colBottoms.length }
 }
 
 export default function DepthPage() {
@@ -45,27 +75,8 @@ export default function DepthPage() {
       .then(({ data }) => { setFishes(data || []); setLoading(false) })
   }, [])
 
-  // Group fishes by depth bucket → assign column index within same bucket
-  // bucket = round to nearest 5m to cluster nearby fish
-  const positionMap = (() => {
-    const buckets = {}
-    fishes.forEach(fish => {
-      const bucket = Math.round(fish.habitat_depth / 5) * 5
-      if (!buckets[bucket]) buckets[bucket] = []
-      buckets[bucket].push(fish.id)
-    })
-    const map = {}
-    fishes.forEach(fish => {
-      const bucket = Math.round(fish.habitat_depth / 5) * 5
-      map[fish.id] = buckets[bucket].indexOf(fish.id)
-    })
-    return map
-  })()
-
-  // Max columns needed (for total width calculation)
-  const maxCol = fishes.length ? Math.max(...Object.values(positionMap)) : 0
-  const totalCols   = maxCol + 1
-  const oceanWidth  = Math.max(totalCols * (CARD_W + COL_GAP) + 24, 280)
+  const { map: positionMap, totalCols } = assignColumns(fishes, CONTAINER_H)
+  const oceanWidth = Math.max(totalCols * (CARD_W + COL_GAP) + 24, 280)
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1 }}>
@@ -83,11 +94,8 @@ export default function DepthPage() {
         </p>
       </div>
 
-      {/* Body — both scroll axes */}
-      <div
-        ref={scrollRef}
-        style={{ flex: 1, overflow: 'scroll', overscrollBehavior: 'contain' }}
-      >
+      {/* Body */}
+      <div ref={scrollRef} style={{ flex: 1, overflow: 'scroll', overscrollBehavior: 'contain' }}>
         {loading ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200 }}>
             <div style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid #d4a855', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
@@ -99,7 +107,8 @@ export default function DepthPage() {
           </div>
         ) : (
           <div style={{ display: 'flex', minHeight: CONTAINER_H + 80 }}>
-            {/* ── Depth ruler (fixed-ish left column) ── */}
+
+            {/* Depth ruler */}
             <div style={{
               width: LEFT_RULER_W, flexShrink: 0,
               position: 'sticky', left: 0, zIndex: 10,
@@ -117,11 +126,10 @@ export default function DepthPage() {
                     fontFamily: 'var(--font-mono)', fontSize: 9,
                     color: '#6b7a6a', textAlign: 'right', whiteSpace: 'nowrap',
                   }}>
-                    {depth >= 1000 ? `${(depth/1000).toFixed(depth===3000?1:1)}km` : `${depth}m`}
+                    {depth >= 1000 ? `${(depth/1000).toFixed(1)}km` : `${depth}m`}
                   </div>
                 )
               })}
-              {/* tick marks */}
               {[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 500, 1000, 2000, 3000].map(depth => {
                 const y = getDepthY(depth, CONTAINER_H) + 40
                 return (
@@ -134,8 +142,9 @@ export default function DepthPage() {
               })}
             </div>
 
-            {/* ── Ocean column (scrolls horizontally) ── */}
+            {/* Ocean canvas */}
             <div style={{ position: 'relative', height: CONTAINER_H + 80, width: oceanWidth, flexShrink: 0 }}>
+
               {/* Zone gradients */}
               {DEPTH_ZONES.map(zone => {
                 const y1 = getDepthY(zone.range[0], CONTAINER_H) + 40
@@ -159,12 +168,12 @@ export default function DepthPage() {
                 background: 'linear-gradient(90deg, transparent, rgba(168,192,232,0.4), transparent)',
               }} />
 
-              {/* ── Fish cards ── */}
+              {/* Fish cards */}
               {fishes.map(fish => {
-                const col    = positionMap[fish.id] || 0
-                const y      = getDepthY(fish.habitat_depth, CONTAINER_H) + 40
-                const x      = col * (CARD_W + COL_GAP) + 8
-                const cover  = proxyImage(fish.cover_photo || fish.ai_cover_photo) || null
+                const col  = positionMap[fish.id] ?? 0
+                const y    = getDepthY(fish.habitat_depth, CONTAINER_H) + 40
+                const x    = col * (CARD_W + COL_GAP) + 8
+                const cover = proxyImage(fish.cover_photo || fish.ai_cover_photo) || null
                 const isSelected = selected?.id === fish.id
 
                 return (
@@ -183,22 +192,19 @@ export default function DepthPage() {
                     onTouchStart={e => e.currentTarget.style.transform = 'scale(0.95)'}
                     onTouchEnd={e => e.currentTarget.style.transform = 'scale(1)'}
                   >
-                    {/* Depth connector line */}
+                    {/* Depth connector dot */}
                     <div style={{
                       position: 'absolute',
-                      left: CARD_W / 2, top: CARD_H / 2,
-                      width: 1, height: 12,
-                      background: 'rgba(201,169,110,0.2)',
-                      transform: 'translateY(-50%) translateX(-0.5px)',
+                      left: CARD_W / 2 - 2, top: CARD_H / 2 - 2,
+                      width: 4, height: 4, borderRadius: '50%',
+                      background: 'rgba(201,169,110,0.5)',
                       pointerEvents: 'none',
                     }} />
 
                     {/* Card */}
                     <div style={{
                       width: CARD_W,
-                      background: isSelected
-                        ? 'rgba(74,114,196,0.35)'
-                        : 'rgba(14,20,32,0.92)',
+                      background: isSelected ? 'rgba(74,114,196,0.35)' : 'rgba(14,20,32,0.92)',
                       backdropFilter: 'blur(10px)',
                       border: `1px solid ${isSelected ? 'rgba(201,169,110,0.45)' : 'rgba(201,169,110,0.08)'}`,
                       borderRadius: 10,
@@ -206,21 +212,21 @@ export default function DepthPage() {
                       boxShadow: isSelected ? '0 0 14px rgba(74,114,196,0.45)' : '0 2px 8px rgba(8,20,46,0.5)',
                       transition: 'all 0.18s',
                     }}>
-                      {/* Photo + name overlay */}
-                      <div style={{ width: CARD_W, height: CARD_W + 24, background: '#192238', position: 'relative', overflow: 'hidden' }}>
+                      {/* Photo + name overlay (all-in-one, no external label that can get covered) */}
+                      <div style={{ width: CARD_W, height: CARD_H, background: '#192238', position: 'relative', overflow: 'hidden' }}>
                         {cover ? (
                           <img src={cover} alt={fish.name} loading="lazy" decoding="async"
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         ) : (
                           <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, opacity: 0.2 }}>🐟</div>
                         )}
-                        {/* Gradient overlay so name text never gets obscured */}
+                        {/* Bottom gradient + name — always inside the card boundary */}
                         <div style={{
                           position: 'absolute', bottom: 0, left: 0, right: 0,
-                          height: 32,
-                          background: 'linear-gradient(transparent, rgba(8,12,20,0.88))',
+                          height: 34,
+                          background: 'linear-gradient(transparent, rgba(6,10,18,0.92))',
                           display: 'flex', alignItems: 'flex-end',
-                          padding: '0 4px 4px',
+                          padding: '0 4px 5px',
                         }}>
                           <div style={{
                             width: '100%',
@@ -232,7 +238,7 @@ export default function DepthPage() {
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
-                            textShadow: '0 1px 3px rgba(0,0,0,0.9)',
+                            textShadow: '0 1px 4px rgba(0,0,0,1)',
                           }}>{fish.name}</div>
                         </div>
                       </div>
