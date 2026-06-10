@@ -12,7 +12,7 @@ const DEPTH_ZONES = [
 
 const CONTAINER_H  = 1200   // total scrollable height (px)
 const CARD_W       = 72     // card width
-const CARD_H       = 96     // card height (photo + name)
+const CARD_H       = 96     // card height (photo + overlay name, = CARD_W + 24)
 const COL_GAP      = 8      // gap between columns
 const LEFT_RULER_W = 52
 
@@ -206,26 +206,36 @@ export default function DepthPage() {
                       boxShadow: isSelected ? '0 0 14px rgba(74,114,196,0.45)' : '0 2px 8px rgba(8,20,46,0.5)',
                       transition: 'all 0.18s',
                     }}>
-                      {/* Photo */}
-                      <div style={{ width: CARD_W, height: CARD_W, background: '#192238', position: 'relative', overflow: 'hidden' }}>
+                      {/* Photo + name overlay */}
+                      <div style={{ width: CARD_W, height: CARD_W + 24, background: '#192238', position: 'relative', overflow: 'hidden' }}>
                         {cover ? (
-                          <img src={cover} alt={fish.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <img src={cover} alt={fish.name} loading="lazy" decoding="async"
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         ) : (
                           <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, opacity: 0.2 }}>🐟</div>
                         )}
+                        {/* Gradient overlay so name text never gets obscured */}
+                        <div style={{
+                          position: 'absolute', bottom: 0, left: 0, right: 0,
+                          height: 32,
+                          background: 'linear-gradient(transparent, rgba(8,12,20,0.88))',
+                          display: 'flex', alignItems: 'flex-end',
+                          padding: '0 4px 4px',
+                        }}>
+                          <div style={{
+                            width: '100%',
+                            textAlign: 'center',
+                            fontFamily: 'var(--font-display)',
+                            fontSize: 10,
+                            color: isSelected ? '#e8c87a' : '#e8dcc8',
+                            lineHeight: 1.2,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            textShadow: '0 1px 3px rgba(0,0,0,0.9)',
+                          }}>{fish.name}</div>
+                        </div>
                       </div>
-                      {/* Name */}
-                      <div style={{
-                        padding: '4px 5px 5px',
-                        textAlign: 'center',
-                        fontFamily: 'var(--font-display)',
-                        fontSize: 11,
-                        color: isSelected ? 'var(--accent-light)' : '#a89880',
-                        lineHeight: 1.3,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}>{fish.name}</div>
                     </div>
                   </div>
                 )

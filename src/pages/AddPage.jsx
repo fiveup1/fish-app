@@ -337,7 +337,7 @@ export default function AddPage() {
           }}>
             {aiLoading
               ? <><span style={{ width: 13, height: 13, borderRadius: '50%', border: '2px solid rgba(212,168,85,0.5)', borderTopColor: 'transparent', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />查詢中...</>
-              : '🔍 搜尋魚料'}
+              : '🔍 搜尋 來捕魚囉!!'}
           </button>
           {error && (
             <div style={{ marginTop: 10, padding: '9px 12px', background: 'rgba(255,100,80,0.08)', border: '1px solid rgba(255,100,80,0.25)', borderRadius: 8, color: 'var(--accent-coral)', fontSize: 12 }}>{error}</div>
@@ -348,7 +348,7 @@ export default function AddPage() {
 
         <div style={{ padding: '11px 13px', borderRadius: 10, background: 'rgba(201,169,110,0.05)', border: '1px solid rgba(201,169,110,0.14)', fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.8 }}>
           <span style={{ color: '#d4a855', fontWeight: 600 }}>使用說明</span><br />
-          1. 輸入魚名 → 點「🔍 搜尋魚料」<br />
+          1. 輸入魚名 → 點「🔍 搜尋 來捕魚囉!!」<br />
           2. 預覽頁右上角直接按「✓ 存檔」<br />
           3. 不對 → 左上角「取消」或右側「↩ 重查」
         </div>

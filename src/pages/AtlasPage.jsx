@@ -39,8 +39,14 @@ function FishCard({ fish, onClick }) {
         {cover ? (
           <>
             {!imgLoaded && <div className="skeleton" style={{ position: 'absolute', inset: 0 }} />}
-            <img src={cover} alt={fish.name} onLoad={() => setImgLoaded(true)}
-              style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: imgLoaded ? 1 : 0, transition: 'opacity 0.3s' }} />
+            <img
+              src={cover}
+              alt={fish.name}
+              loading="lazy"
+              decoding="async"
+              onLoad={() => setImgLoaded(true)}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: imgLoaded ? 1 : 0, transition: 'opacity 0.3s' }}
+            />
           </>
         ) : (
           <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, opacity: 0.12 }}>🐟</div>
@@ -70,7 +76,19 @@ function FishCard({ fish, onClick }) {
   )
 }
 
-const PAGE_SIZE = 24
+// 用來判斷 search 是否可能命中 common_names 的本地快速過濾
+// （Supabase query 也會搜，但先本地排序讓結果更自然）
+function matchesSearch(fish, search) {
+  if (!search) return true
+  const q = search.toLowerCase()
+  if (fish.name?.toLowerCase().includes(q)) return true
+  if (fish.scientific_name?.toLowerCase().includes(q)) return true
+  if (fish.common_names?.toLowerCase().includes(q)) return true
+  return false
+}
+
+const INITIAL_SIZE = 8   // 第一批顯示張數
+const PAGE_SIZE    = 24  // 後續每批張數
 
 export default function AtlasPage() {
   const navigate = useNavigate()
@@ -82,27 +100,65 @@ export default function AtlasPage() {
   const [hasMore, setHasMore]   = useState(true)
   const loaderRef = useRef(null)
 
-  const fetchFishes = useCallback(async (reset = false) => {
-    const cur = reset ? 0 : page
-    let q = supabase.from('fishes').select('id,name,scientific_name,category,market_price,cover_photo')
-      .order('created_at', { ascending: false }).range(cur * PAGE_SIZE, cur * PAGE_SIZE + PAGE_SIZE - 1)
-    if (search)        q = q.or(`name.ilike.%${search}%,scientific_name.ilike.%${search}%`)
-    if (category !== 'all') q = q.eq('category', category)
+  // 第一批：先抓 INITIAL_SIZE 快速顯示
+  const fetchInitial = useCallback(async (srch, cat) => {
+    setLoading(true)
+    let q = supabase
+      .from('fishes')
+      .select('id,name,scientific_name,category,market_price,cover_photo,common_names')
+      .order('created_at', { ascending: false })
+      .range(0, INITIAL_SIZE - 1)
+
+    if (srch) q = q.or(`name.ilike.%${srch}%,scientific_name.ilike.%${srch}%,common_names.ilike.%${srch}%`)
+    if (cat !== 'all') q = q.eq('category', cat)
+
     const { data } = await q
-    if (!data) return
-    if (reset) { setFishes(data); setPage(1) }
-    else       { setFishes(p => [...p, ...data]); setPage(p => p + 1) }
+    if (!data) { setLoading(false); return }
+    setFishes(data)
+    setPage(1)
+    setHasMore(data.length === INITIAL_SIZE)
+    setLoading(false)
+  }, [])
+
+  // 後續分頁
+  const fetchMore = useCallback(async () => {
+    if (!hasMore || loading) return
+    setLoading(true)
+    const start = INITIAL_SIZE + (page - 1) * PAGE_SIZE
+    let q = supabase
+      .from('fishes')
+      .select('id,name,scientific_name,category,market_price,cover_photo,common_names')
+      .order('created_at', { ascending: false })
+      .range(start, start + PAGE_SIZE - 1)
+
+    if (search) q = q.or(`name.ilike.%${search}%,scientific_name.ilike.%${search}%,common_names.ilike.%${search}%`)
+    if (category !== 'all') q = q.eq('category', category)
+
+    const { data } = await q
+    if (!data) { setLoading(false); return }
+    setFishes(p => [...p, ...data])
+    setPage(p => p + 1)
     setHasMore(data.length === PAGE_SIZE)
     setLoading(false)
-  }, [search, category, page])
+  }, [search, category, page, hasMore, loading])
 
-  useEffect(() => { setLoading(true); setPage(0); fetchFishes(true) }, [search, category]) // eslint-disable-line
-
+  // 搜尋或分類改變 → 重置
   useEffect(() => {
-    const obs = new IntersectionObserver(e => { if (e[0].isIntersecting && hasMore && !loading) fetchFishes(false) }, { threshold: 0.1 })
+    setFishes([])
+    setPage(0)
+    setHasMore(true)
+    fetchInitial(search, category)
+  }, [search, category]) // eslint-disable-line
+
+  // Intersection Observer 觸發後續載入
+  useEffect(() => {
+    const obs = new IntersectionObserver(
+      e => { if (e[0].isIntersecting) fetchMore() },
+      { threshold: 0.1 }
+    )
     if (loaderRef.current) obs.observe(loaderRef.current)
     return () => obs.disconnect()
-  }, [hasMore, loading, fetchFishes])
+  }, [fetchMore])
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1 }}>
@@ -126,7 +182,7 @@ export default function AtlasPage() {
             width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
           </svg>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="搜尋魚名、學名..."
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="搜尋魚名、學名、常見別名..."
             style={{
               width: '100%', padding: '9px 12px 9px 30px',
               background: 'rgba(28,40,64,0.8)', border: '1px solid rgba(201,169,110,0.12)',
