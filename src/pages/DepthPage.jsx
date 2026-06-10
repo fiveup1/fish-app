@@ -4,10 +4,10 @@ import { supabase } from '../lib/supabase'
 import { proxyImage } from '../lib/imageProxy'
 
 const DEPTH_ZONES = [
-  { name: '潮間帶',   range: [0,    50],    color: '#a8c0e8' },
-  { name: '淺海帶',   range: [50,   200],   color: '#6899d8' },
-  { name: '中深海帶', range: [200,  1000],  color: '#4a72c4' },
-  { name: '深海帶',   range: [1000, 3000],  color: '#2a4a9a' },
+  { name: '潮間帶',   range: [0,    50],    color: '#c9a96e' },
+  { name: '淺海帶',   range: [50,   200],   color: '#8aaa88' },
+  { name: '中深海帶', range: [200,  500],   color: '#5a8aaa' },
+  { name: '深海帶',   range: [500,  3000],  color: '#3a5a7a' },
 ]
 
 const CONTAINER_H  = 1200   // total scrollable height (px)
@@ -16,14 +16,16 @@ const CARD_H       = 96     // card height (photo + name)
 const COL_GAP      = 8      // gap between columns
 const LEFT_RULER_W = 52
 
-// 分段線性映射：0-200m 佔 80%，200-3000m 佔 20%
+// 分段線性映射：0-100m 佔 70%，100-500m 佔 20%，500-3000m 佔 10%
 function getDepthY(depth, h) {
   const MAX_DEPTH = 3000
   const d = Math.min(depth, MAX_DEPTH)
-  if (d <= 200) {
-    return (d / 200) * h * 0.80
+  if (d <= 100) {
+    return (d / 100) * h * 0.70
+  } else if (d <= 500) {
+    return h * 0.70 + ((d - 100) / 400) * h * 0.20
   } else {
-    return h * 0.80 + ((d - 200) / (MAX_DEPTH - 200)) * h * 0.20
+    return h * 0.90 + ((d - 500) / 2500) * h * 0.10
   }
 }
 
@@ -71,12 +73,12 @@ export default function DepthPage() {
       <div style={{
         paddingTop: 'calc(var(--safe-top) + 6px)',
         padding: 'calc(var(--safe-top) + 6px) 16px 14px',
-        background: 'var(--grad-header)',
+        background: 'rgba(8,12,20,0.96)',
         backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
         borderBottom: '1px solid var(--border-subtle)', flexShrink: 0,
       }}>
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, marginBottom: 2 }}>深海棲息圖</h2>
-        <p style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+        <p style={{ fontSize: 11, color: '#6b7a6a', fontFamily: 'var(--font-mono)' }}>
           {fishes.length} 種 · 上下滑動看深度，左右滑動看更多
         </p>
       </div>
@@ -88,10 +90,10 @@ export default function DepthPage() {
       >
         {loading ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200 }}>
-            <div style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid var(--accent-sky)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
+            <div style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid #d4a855', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
           </div>
         ) : fishes.length === 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 300, color: 'var(--text-muted)', gap: 8 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 300, color: '#6b7a6a', gap: 8 }}>
             <span style={{ fontSize: 40 }}>🌊</span>
             <span style={{ fontSize: 14 }}>新增含有棲息深度資料的海鮮後顯示</span>
           </div>
@@ -102,7 +104,7 @@ export default function DepthPage() {
               width: LEFT_RULER_W, flexShrink: 0,
               position: 'sticky', left: 0, zIndex: 10,
               height: CONTAINER_H + 80,
-              background: 'rgba(8,20,46,0.92)',
+              background: 'rgba(8,12,20,0.94)',
               backdropFilter: 'blur(12px)',
               borderRight: '1px solid var(--border-subtle)',
             }}>
@@ -113,7 +115,7 @@ export default function DepthPage() {
                     position: 'absolute', top: y, right: 6,
                     transform: 'translateY(-50%)',
                     fontFamily: 'var(--font-mono)', fontSize: 9,
-                    color: 'var(--text-muted)', textAlign: 'right', whiteSpace: 'nowrap',
+                    color: '#6b7a6a', textAlign: 'right', whiteSpace: 'nowrap',
                   }}>
                     {depth >= 1000 ? `${(depth/1000).toFixed(depth===3000?1:1)}km` : `${depth}m`}
                   </div>
@@ -186,7 +188,7 @@ export default function DepthPage() {
                       position: 'absolute',
                       left: CARD_W / 2, top: CARD_H / 2,
                       width: 1, height: 12,
-                      background: 'rgba(168,192,232,0.2)',
+                      background: 'rgba(201,169,110,0.2)',
                       transform: 'translateY(-50%) translateX(-0.5px)',
                       pointerEvents: 'none',
                     }} />
@@ -196,16 +198,16 @@ export default function DepthPage() {
                       width: CARD_W,
                       background: isSelected
                         ? 'rgba(74,114,196,0.35)'
-                        : 'rgba(13,29,69,0.88)',
+                        : 'rgba(14,20,32,0.92)',
                       backdropFilter: 'blur(10px)',
-                      border: `1px solid ${isSelected ? 'var(--border-active)' : 'var(--border-subtle)'}`,
+                      border: `1px solid ${isSelected ? 'rgba(201,169,110,0.45)' : 'rgba(201,169,110,0.08)'}`,
                       borderRadius: 10,
                       overflow: 'hidden',
                       boxShadow: isSelected ? '0 0 14px rgba(74,114,196,0.45)' : '0 2px 8px rgba(8,20,46,0.5)',
                       transition: 'all 0.18s',
                     }}>
                       {/* Photo */}
-                      <div style={{ width: CARD_W, height: CARD_W, background: 'var(--bg-surface)', position: 'relative', overflow: 'hidden' }}>
+                      <div style={{ width: CARD_W, height: CARD_W, background: '#192238', position: 'relative', overflow: 'hidden' }}>
                         {cover ? (
                           <img src={cover} alt={fish.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         ) : (
@@ -218,7 +220,7 @@ export default function DepthPage() {
                         textAlign: 'center',
                         fontFamily: 'var(--font-display)',
                         fontSize: 11,
-                        color: isSelected ? 'var(--accent-light)' : 'var(--text-secondary)',
+                        color: isSelected ? 'var(--accent-light)' : '#a89880',
                         lineHeight: 1.3,
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',

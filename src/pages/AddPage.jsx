@@ -16,7 +16,7 @@ const FIELD_LABELS = {
 }
 const S = {
   label: { display: 'block', fontSize: 11, color: 'var(--text-muted)', marginBottom: 5, fontFamily: 'var(--font-mono)', letterSpacing: '0.06em', textTransform: 'uppercase' },
-  input: { width: '100%', padding: '10px 13px', background: 'rgba(26,52,112,0.55)', border: '1px solid var(--border-subtle)', borderRadius: 10, fontSize: 14, color: 'var(--text-primary)', outline: 'none', transition: 'border-color 0.2s' },
+  input: { width: '100%', padding: '10px 13px', background: 'rgba(28,40,64,0.7)', border: '1px solid rgba(201,169,110,0.12)', borderRadius: 10, fontSize: 14, color: 'var(--text-primary)', outline: 'none', transition: 'border-color 0.2s' },
 }
 const focusIn  = e => e.target.style.borderColor = 'var(--border-active)'
 const focusOut = e => e.target.style.borderColor = 'var(--border-subtle)'
@@ -43,7 +43,7 @@ function PreviewOverlay({ name, fields, category, photos, saving, onConfirm, onC
   return (
     <div style={{
       position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      zIndex: 200, background: '#08142e',
+      zIndex: 200, background: '#0e1420',
       display: 'flex', flexDirection: 'column',
       overflow: 'hidden',
       animation: 'bubbleUp 0.25s var(--ease-ocean)',
@@ -55,16 +55,16 @@ function PreviewOverlay({ name, fields, category, photos, saving, onConfirm, onC
         display: 'flex', alignItems: 'center',
         padding: 'calc(var(--safe-top) + 8px) 10px 10px',
         gap: 6,
-        background: 'rgba(8,20,46,0.98)',
+        background: 'rgba(8,12,20,0.98)',
         backdropFilter: 'blur(20px)',
-        borderBottom: '1px solid rgba(168,192,232,0.10)',
+        borderBottom: '1px solid rgba(201,169,110,0.10)',
       }}>
         {/* 取消 — 固定寬度 */}
         <button onClick={onCancel} style={{
           width: 56, height: 36, flexShrink: 0,
-          background: 'rgba(168,192,232,0.06)',
-          border: '1px solid rgba(168,192,232,0.2)',
-          borderRadius: 10, fontSize: 13, fontWeight: 600, color: '#a8c0e8',
+          background: 'rgba(201,169,110,0.06)',
+          border: '1px solid rgba(201,169,110,0.18)',
+          borderRadius: 10, fontSize: 13, fontWeight: 600, color: '#c9a96e',
         }}>取消</button>
 
         {/* 中間標題 — 可縮可截 */}
@@ -74,9 +74,9 @@ function PreviewOverlay({ name, fields, category, photos, saving, onConfirm, onC
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>{editFields.matched_name || name}</div>
           {wikiTitle && (
-            <div style={{ fontSize: 10, color: '#6889b8', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ fontSize: 10, color: '#7a6a5a', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               📖 {wikiUrl
-                ? <a href={wikiUrl} target="_blank" rel="noreferrer" style={{ color: '#a8c0e8', textDecoration: 'underline dotted' }}>{wikiTitle}</a>
+                ? <a href={wikiUrl} target="_blank" rel="noreferrer" style={{ color: '#c9a96e', textDecoration: 'underline dotted' }}>{wikiTitle}</a>
                 : wikiTitle}
             </div>
           )}
@@ -85,14 +85,14 @@ function PreviewOverlay({ name, fields, category, photos, saving, onConfirm, onC
         {/* 存檔 — 固定寬度 */}
         <button onClick={handleSave} disabled={saving} style={{
           width: 64, height: 36, flexShrink: 0,
-          background: saving ? 'rgba(26,52,112,0.5)' : 'linear-gradient(135deg, #4a72c4, #a8c0e8)',
-          color: saving ? '#6889b8' : '#08142e',
+          background: saving ? 'rgba(28,40,64,0.5)' : 'linear-gradient(135deg, #d4a855, #c9a96e)',
+          color: saving ? '#6b7a8a' : '#0e1420',
           border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700,
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
           boxShadow: saving ? 'none' : '0 2px 10px rgba(74,114,196,0.4)',
         }}>
           {saving
-            ? <span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid #6889b8', borderTopColor: 'transparent', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
+            ? <span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid #6b7a8a', borderTopColor: 'transparent', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
             : '✓ 存檔'}
         </button>
       </div>
@@ -101,18 +101,18 @@ function PreviewOverlay({ name, fields, category, photos, saving, onConfirm, onC
       <div style={{
         flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6,
         padding: '6px 10px',
-        background: 'rgba(8,20,46,0.6)',
-        borderBottom: '1px solid rgba(168,192,232,0.06)',
+        background: 'rgba(8,12,20,0.6)',
+        borderBottom: '1px solid rgba(201,169,110,0.06)',
       }}>
-        <span style={{ flex: 1, minWidth: 0, fontSize: 11, color: '#6889b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <span style={{ flex: 1, minWidth: 0, fontSize: 11, color: '#7a6a5a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {editFields.matched_name && editFields.matched_name !== name
             ? `「${name}」→「${editFields.matched_name}」`
             : !wikiTitle ? '⚠ 維基未找到，以 AI 知識為準' : '資料已確認，可修改後存檔'}
         </span>
         <button onClick={onRetry} style={{
           flexShrink: 0, padding: '4px 10px',
-          background: 'rgba(168,192,232,0.07)', border: '1px solid rgba(168,192,232,0.15)',
-          borderRadius: 8, fontSize: 11, color: '#a8c0e8', fontWeight: 600,
+          background: 'rgba(201,169,110,0.06)', border: '1px solid rgba(201,169,110,0.15)',
+          borderRadius: 8, fontSize: 11, color: '#c9a96e', fontWeight: 600,
         }}>↩ 重查</button>
       </div>
 
@@ -127,13 +127,13 @@ function PreviewOverlay({ name, fields, category, photos, saving, onConfirm, onC
               {aiImg && (
                 <div onClick={() => setCoverSource('ai')} style={{
                   position: 'relative', cursor: 'pointer', borderRadius: 10, overflow: 'hidden', flexShrink: 0,
-                  border: `2px solid ${coverSource === 'ai' ? '#a8c0e8' : 'rgba(168,192,232,0.2)'}`,
+                  border: `2px solid ${coverSource === 'ai' ? '#d4a855' : 'rgba(201,169,110,0.15)'}`,
                   transition: 'border-color 0.2s',
                 }}>
                   <img src={`/api/image-proxy?url=${encodeURIComponent(aiImg)}`} alt="AI"
                     style={{ width: 80, height: 80, objectFit: 'cover', display: 'block' }}
                     onError={e => e.target.style.display = 'none'} />
-                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '2px 0', background: 'rgba(8,20,46,0.75)', textAlign: 'center', fontSize: 9, color: coverSource === 'ai' ? '#a8c0e8' : '#6889b8', fontWeight: 700 }}>
+                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '2px 0', background: 'rgba(8,20,46,0.75)', textAlign: 'center', fontSize: 9, color: coverSource === 'ai' ? '#d4a855' : '#6b7a8a', fontWeight: 700 }}>
                     {coverSource === 'ai' ? '✓ 封面' : 'AI 圖'}
                   </div>
                 </div>
@@ -141,11 +141,11 @@ function PreviewOverlay({ name, fields, category, photos, saving, onConfirm, onC
               {photos.map((p, i) => (
                 <div key={i} onClick={() => setCoverSource(`user:${i}`)} style={{
                   position: 'relative', cursor: 'pointer', borderRadius: 10, overflow: 'hidden', flexShrink: 0,
-                  border: `2px solid ${coverSource === `user:${i}` ? '#a8c0e8' : 'rgba(168,192,232,0.2)'}`,
+                  border: `2px solid ${coverSource === `user:${i}` ? '#d4a855' : 'rgba(201,169,110,0.15)'}`,
                   transition: 'border-color 0.2s',
                 }}>
                   <img src={p.preview} style={{ width: 80, height: 80, objectFit: 'cover', display: 'block' }} />
-                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '2px 0', background: 'rgba(8,20,46,0.75)', textAlign: 'center', fontSize: 9, color: coverSource === `user:${i}` ? '#a8c0e8' : '#6889b8', fontWeight: 700 }}>
+                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '2px 0', background: 'rgba(8,20,46,0.75)', textAlign: 'center', fontSize: 9, color: coverSource === `user:${i}` ? '#d4a855' : '#6b7a8a', fontWeight: 700 }}>
                     {coverSource === `user:${i}` ? '✓ 封面' : `照片${i + 1}`}
                   </div>
                 </div>
@@ -161,9 +161,9 @@ function PreviewOverlay({ name, fields, category, photos, saving, onConfirm, onC
             {CATEGORIES.map(c => (
               <button key={c} onClick={() => setCat(c)} style={{
                 padding: '5px 14px', borderRadius: 20, fontSize: 13,
-                background: cat === c ? 'rgba(168,192,232,0.2)' : 'rgba(26,52,112,0.45)',
-                color: cat === c ? '#d4e4f8' : '#6889b8',
-                border: `1px solid ${cat === c ? 'rgba(168,192,232,0.5)' : 'rgba(168,192,232,0.10)'}`,
+                background: cat === c ? 'rgba(201,169,110,0.15)' : 'rgba(28,40,64,0.6)',
+                color: cat === c ? '#d4a855' : '#6b7a8a',
+                border: `1px solid ${cat === c ? 'rgba(201,169,110,0.45)' : 'rgba(201,169,110,0.08)'}`,
                 transition: 'all 0.15s', fontWeight: cat === c ? 600 : 400,
               }}>{c}</button>
             ))}
@@ -304,9 +304,9 @@ export default function AddPage() {
       {/* Header */}
       <div style={{
         padding: 'calc(var(--safe-top) + 8px) 16px 14px',
-        background: 'var(--grad-header)',
+        background: 'rgba(8,12,20,0.96)',
         backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
-        borderBottom: '1px solid var(--border-subtle)',
+        borderBottom: '1px solid rgba(201,169,110,0.10)',
         position: 'sticky', top: 0, zIndex: 10,
       }}>
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 700 }}>食刻時光</h2>
@@ -328,26 +328,26 @@ export default function AddPage() {
           />
           <button onClick={handleAILookup} disabled={aiLoading || !name.trim()} style={{
             width: '100%', padding: '12px',
-            background: aiLoading ? 'rgba(26,52,112,0.6)' : 'linear-gradient(135deg, #4a72c4, #a8c0e8)',
-            color: aiLoading ? 'var(--text-muted)' : 'var(--bg-abyss)',
+            background: aiLoading ? 'rgba(28,40,64,0.6)' : 'linear-gradient(135deg, #d4a855, #c9a96e)',
+            color: aiLoading ? 'var(--text-muted)' : '#0e1420',
             borderRadius: 10, fontSize: 13, fontWeight: 700,
-            border: aiLoading ? '1px solid var(--border-subtle)' : 'none',
-            boxShadow: aiLoading ? 'none' : '0 2px 12px rgba(74,114,196,0.45)',
+            border: aiLoading ? '1px solid rgba(201,169,110,0.12)' : 'none',
+            boxShadow: aiLoading ? 'none' : '0 2px 12px rgba(212,168,85,0.35)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
           }}>
             {aiLoading
-              ? <><span style={{ width: 13, height: 13, borderRadius: '50%', border: '2px solid rgba(74,114,196,0.5)', borderTopColor: 'transparent', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />查詢中...</>
+              ? <><span style={{ width: 13, height: 13, borderRadius: '50%', border: '2px solid rgba(212,168,85,0.5)', borderTopColor: 'transparent', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />查詢中...</>
               : '🔍 搜尋魚料'}
           </button>
           {error && (
-            <div style={{ marginTop: 10, padding: '9px 12px', background: 'rgba(255,128,102,0.08)', border: '1px solid rgba(255,128,102,0.3)', borderRadius: 8, color: 'var(--accent-coral)', fontSize: 12 }}>{error}</div>
+            <div style={{ marginTop: 10, padding: '9px 12px', background: 'rgba(255,100,80,0.08)', border: '1px solid rgba(255,100,80,0.25)', borderRadius: 8, color: 'var(--accent-coral)', fontSize: 12 }}>{error}</div>
           )}
         </section>
 
 
 
-        <div style={{ padding: '11px 13px', borderRadius: 10, background: 'rgba(74,114,196,0.08)', border: '1px solid rgba(74,114,196,0.18)', fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.8 }}>
-          <span style={{ color: 'var(--accent-sky)', fontWeight: 600 }}>使用說明</span><br />
+        <div style={{ padding: '11px 13px', borderRadius: 10, background: 'rgba(201,169,110,0.05)', border: '1px solid rgba(201,169,110,0.14)', fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.8 }}>
+          <span style={{ color: '#d4a855', fontWeight: 600 }}>使用說明</span><br />
           1. 輸入魚名 → 點「🔍 搜尋魚料」<br />
           2. 預覽頁右上角直接按「✓ 存檔」<br />
           3. 不對 → 左上角「取消」或右側「↩ 重查」

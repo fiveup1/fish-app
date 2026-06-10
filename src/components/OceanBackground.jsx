@@ -9,8 +9,6 @@ export default function OceanBackground() {
     const ctx = canvas.getContext('2d')
     let animId, t = 0
 
-
-
     function resize() {
       canvas.width  = window.innerWidth
       canvas.height = window.innerHeight
@@ -22,36 +20,35 @@ export default function OceanBackground() {
       const { width, height } = canvas
       ctx.clearRect(0, 0, width, height)
 
-      // Deep quality-blue gradient
+      // Deep void gradient — warm charcoal, not cold blue
       const grad = ctx.createLinearGradient(0, 0, 0, height)
-      grad.addColorStop(0,   '#08142e')
-      grad.addColorStop(0.4, '#0d1f45')
-      grad.addColorStop(0.8, '#142a5a')
-      grad.addColorStop(1,   '#0d1f45')
+      grad.addColorStop(0,   '#080c14')
+      grad.addColorStop(0.5, '#0e1420')
+      grad.addColorStop(1,   '#131b2e')
       ctx.fillStyle = grad
       ctx.fillRect(0, 0, width, height)
 
-      // Soft radial ambient light top-right
-      const amb = ctx.createRadialGradient(width * 0.75, height * 0.1, 0, width * 0.75, height * 0.1, width * 0.55)
-      amb.addColorStop(0,   'rgba(74, 114, 196, 0.10)')
-      amb.addColorStop(0.5, 'rgba(74, 114, 196, 0.04)')
-      amb.addColorStop(1,   'rgba(74, 114, 196, 0)')
+      // Subtle gold ambient glow — bottom left
+      const amb = ctx.createRadialGradient(width * 0.15, height * 0.85, 0, width * 0.15, height * 0.85, width * 0.5)
+      amb.addColorStop(0,   'rgba(201, 169, 110, 0.06)')
+      amb.addColorStop(0.5, 'rgba(201, 169, 110, 0.02)')
+      amb.addColorStop(1,   'rgba(201, 169, 110, 0)')
       ctx.fillStyle = amb
       ctx.fillRect(0, 0, width, height)
 
-      // Subtle wave lines
-      for (let i = 0; i < 4; i++) {
+      // Very subtle wave lines — gold-tinted
+      for (let i = 0; i < 3; i++) {
         ctx.beginPath()
-        ctx.strokeStyle = `rgba(168, 192, 232, ${0.035 - i * 0.007})`
+        ctx.strokeStyle = `rgba(201, 169, 110, ${0.028 - i * 0.007})`
         ctx.lineWidth = 1
-        for (let x = 0; x <= width; x += 3) {
-          const y = height * (0.25 + i * 0.18) + Math.sin((x / width) * Math.PI * 5 + t + i * 1.2) * 6
+        for (let x = 0; x <= width; x += 4) {
+          const y = height * (0.3 + i * 0.22) + Math.sin((x / width) * Math.PI * 4 + t + i * 1.4) * 5
           x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)
         }
         ctx.stroke()
       }
 
-      t += 0.004
+      t += 0.003
       animId = requestAnimationFrame(draw)
     }
 
@@ -63,13 +60,10 @@ export default function OceanBackground() {
   }, [])
 
   return (
-    <canvas
-      ref={canvasRef}
-      style={{
-        position: 'fixed', top: 0, left: 0,
-        width: '100%', height: '100%',
-        zIndex: 0, pointerEvents: 'none',
-      }}
-    />
+    <canvas ref={canvasRef} style={{
+      position: 'fixed', top: 0, left: 0,
+      width: '100%', height: '100%',
+      zIndex: 0, pointerEvents: 'none',
+    }} />
   )
 }

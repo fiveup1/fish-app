@@ -22,7 +22,7 @@ export default function SharePage() {
   )
 
   if (!fish) return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', gap: 12 }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#6b7a6a', gap: 12 }}>
       <span style={{ fontSize: 48 }}>🌊</span>
       <span>找不到這筆資料</span>
     </div>
@@ -46,8 +46,8 @@ export default function SharePage() {
         position: 'fixed', top: 'calc(var(--safe-top) + 10px)', right: 14, zIndex: 20,
         padding: '4px 12px',
         background: 'rgba(8,20,46,0.88)', backdropFilter: 'blur(10px)',
-        border: '1px solid var(--border-mid)',
-        borderRadius: 20, fontSize: 10, color: 'var(--accent-sky)',
+        border: '1px solid rgba(201,169,110,0.18)',
+        borderRadius: 20, fontSize: 10, color: '#d4a855',
         fontFamily: 'var(--font-mono)',
       }}>海鮮圖鑑</div>
 
@@ -59,7 +59,7 @@ export default function SharePage() {
               {photos.map((_, i) => (
                 <div key={i} onClick={() => setPhotoIdx(i)} style={{
                   width: i === photoIdx ? 16 : 6, height: 6, borderRadius: 3,
-                  background: i === photoIdx ? 'var(--accent-sky)' : 'rgba(255,255,255,0.35)',
+                  background: i === photoIdx ? '#d4a855' : 'rgba(201,169,110,0.25)',
                   transition: 'all 0.3s', cursor: 'pointer',
                 }} />
               ))}
@@ -69,13 +69,13 @@ export default function SharePage() {
       )}
 
       <div style={{ padding: '24px 20px 60px' }}>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 700, marginBottom: 4 }}>{fish.name}</h1>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700, color: 'var(--cream)', marginBottom: 4 }}>{fish.name}</h1>
         {fish.scientific_name && (
-          <p style={{ fontStyle: 'italic', color: 'var(--text-muted)', fontSize: 14, marginBottom: 20 }}>{fish.scientific_name}</p>
+          <p style={{ fontStyle: 'italic', color: '#6b7a6a', fontSize: 14, marginBottom: 20 }}>{fish.scientific_name}</p>
         )}
         <div style={{
-          background: 'linear-gradient(145deg, rgba(26,52,112,0.7), rgba(30,61,130,0.5))',
-          borderRadius: 16, border: '1px solid var(--border-subtle)', overflow: 'hidden',
+          background: 'linear-gradient(145deg, rgba(28,40,64,0.8), rgba(33,47,74,0.7))',
+          borderRadius: 16, border: '1px solid rgba(201,169,110,0.1)', overflow: 'hidden',
           backdropFilter: 'blur(8px)',
         }}>
           {rows.map((row, i) => (
@@ -84,8 +84,8 @@ export default function SharePage() {
               borderBottom: i < rows.length - 1 ? '1px solid var(--border-subtle)' : 'none',
               display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16,
             }}>
-              <span style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', flexShrink: 0 }}>{row.label}</span>
-              <span style={{ fontSize: 14, color: 'var(--text-primary)', textAlign: 'right', fontStyle: row.italic ? 'italic' : 'normal', lineHeight: 1.5 }}>
+              <span style={{ fontSize: 11, color: '#6b7a6a', fontFamily: 'var(--font-mono)', flexShrink: 0 }}>{row.label}</span>
+              <span style={{ fontSize: 14, color: '#e8dcc8', textAlign: 'right', fontStyle: row.italic ? 'italic' : 'normal', lineHeight: 1.5 }}>
                 {row.value}
               </span>
             </div>
