@@ -61,6 +61,7 @@ export default function DetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const fileInputRef = useRef(null)
+  const nameInputRef = useRef(null)
 
   const [fish, setFish]         = useState(null)
   const [loading, setLoading]   = useState(true)
@@ -72,6 +73,9 @@ export default function DetailPage() {
   const [deletingPhoto, setDeletingPhoto] = useState(null)
   const [lightboxIndex, setLightboxIndex] = useState(null)
   const [editingCategory, setEditingCategory] = useState(false)
+  const [editingName, setEditingName]   = useState(false)
+  const [nameInput, setNameInput]       = useState('')
+  const [savingName, setSavingName]     = useState(false)
 
   useEffect(() => { fetchFish() }, [id]) // eslint-disable-line
 
@@ -107,6 +111,22 @@ export default function DetailPage() {
     await supabase.from('fishes').update({ category: cat }).eq('id', id)
     setFish(f => ({ ...f, category: cat }))
     setEditingCategory(false)
+  }
+
+  function openNameEdit() {
+    setNameInput(fish.name)
+    setEditingName(true)
+    setTimeout(() => { nameInputRef.current?.focus(); nameInputRef.current?.select() }, 60)
+  }
+
+  async function handleSaveName() {
+    const trimmed = nameInput.trim()
+    if (!trimmed || trimmed === fish.name) { setEditingName(false); return }
+    setSavingName(true)
+    await supabase.from('fishes').update({ name: trimmed }).eq('id', id)
+    setFish(f => ({ ...f, name: trimmed }))
+    setSavingName(false)
+    setEditingName(false)
   }
 
   async function handleAddPhotos(e) {
@@ -220,8 +240,68 @@ export default function DetailPage() {
         {/* Title */}
         <div style={{ marginBottom: 18 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 4 }}>
-            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 700, color: 'var(--cream)', flex: 1 }}>{fish.name}</h1>
-            <button onClick={() => setEditingCategory(true)} style={{ marginTop: 4, padding: '4px 10px', borderRadius: 10, background: 'rgba(201,169,110,0.08)', border: '1px solid rgba(201,169,110,0.2)', color: '#c9a96e', fontSize: 11, flexShrink: 0 }}>{fish.category || '未分類'} ✏️</button>
+            {editingName ? (
+              /* ── 編輯名稱 inline ── */
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <input
+                  ref={nameInputRef}
+                  value={nameInput}
+                  onChange={e => setNameInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleSaveName(); if (e.key === 'Escape') setEditingName(false) }}
+                  maxLength={40}
+                  style={{
+                    flex: 1, minWidth: 0,
+                    fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 700,
+                    color: 'var(--cream)',
+                    background: 'rgba(28,40,64,0.85)',
+                    border: '1px solid rgba(201,169,110,0.45)',
+                    borderRadius: 10, padding: '4px 10px',
+                    outline: 'none',
+                  }}
+                />
+                <button
+                  onClick={handleSaveName}
+                  disabled={savingName || !nameInput.trim()}
+                  style={{
+                    flexShrink: 0, padding: '6px 14px', borderRadius: 10,
+                    background: savingName ? 'rgba(201,169,110,0.08)' : 'rgba(201,169,110,0.18)',
+                    border: '1px solid rgba(201,169,110,0.45)',
+                    color: '#d4a855', fontSize: 12, fontWeight: 700,
+                  }}
+                >{savingName ? '儲存中' : '確認'}</button>
+                <button
+                  onClick={() => setEditingName(false)}
+                  style={{
+                    flexShrink: 0, width: 32, height: 32, borderRadius: '50%',
+                    background: 'rgba(28,40,64,0.7)',
+                    border: '1px solid rgba(201,169,110,0.15)',
+                    color: 'var(--text-muted)', fontSize: 16,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                >×</button>
+              </div>
+            ) : (
+              /* ── 顯示名稱 + 編輯鉛筆 ── */
+              <>
+                <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 700, color: 'var(--cream)', flex: 1 }}>{fish.name}</h1>
+                <button
+                  onClick={openNameEdit}
+                  title="修改名稱"
+                  style={{
+                    marginTop: 4, flexShrink: 0,
+                    width: 30, height: 30, borderRadius: '50%',
+                    background: 'rgba(201,169,110,0.07)',
+                    border: '1px solid rgba(201,169,110,0.18)',
+                    color: '#c9a96e', fontSize: 13,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    transition: 'background 0.15s',
+                  }}
+                >✏️</button>
+              </>
+            )}
+            {!editingName && (
+              <button onClick={() => setEditingCategory(true)} style={{ marginTop: 4, padding: '4px 10px', borderRadius: 10, background: 'rgba(201,169,110,0.08)', border: '1px solid rgba(201,169,110,0.2)', color: '#c9a96e', fontSize: 11, flexShrink: 0 }}>{fish.category || '未分類'} ✏️</button>
+            )}
           </div>
           {fish.scientific_name && <p style={{ fontStyle: 'italic', color: 'var(--text-muted)', fontSize: 13 }}>{fish.scientific_name}</p>}
         </div>
