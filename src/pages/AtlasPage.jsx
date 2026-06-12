@@ -118,8 +118,8 @@ export function invalidateFishCache() {
   _imageMap  = null
 }
 
-// ── 搜尋過濾（本地，即時）────────────────────────────────────
-function applyFilter(list, search, category) {
+// ── 搜尋過濾 + 排序（本地，即時）sort: 'default'|'price_asc'|'price_desc'
+function applyFilter(list, search, category, sort) {
   let out = list
   if (category !== 'all') out = out.filter(f => f.category === category)
   if (search) {
@@ -129,6 +129,17 @@ function applyFilter(list, search, category) {
       f.scientific_name?.toLowerCase().includes(q) ||
       f.common_names?.toLowerCase().includes(q)
     )
+  }
+  if (sort === 'price_asc' || sort === 'price_desc') {
+    const asc = sort === 'price_asc'
+    out = [...out].sort((a, b) => {
+      const pa = parseFloat(a.market_price) || 0
+      const pb = parseFloat(b.market_price) || 0
+      if (!pa && !pb) return 0
+      if (!pa) return 1   // 無價格排最後
+      if (!pb) return -1
+      return asc ? pa - pb : pb - pa
+    })
   }
   return out
 }
@@ -141,11 +152,12 @@ export default function AtlasPage() {
   const [loading,   setLoading]   = useState(!_allFishes)
   const [search,    setSearch]    = useState('')
   const [category,  setCategory]  = useState('all')
+  const [sort,      setSort]      = useState('default')
 
   // 把 imageMap patch 進 allFishes 後的合併結果
   const fishes = applyFilter(
     allFishes.map(f => ({ ...f, cover_photo: imageMap[f.id] ?? f.cover_photo ?? null })),
-    search, category
+    search, category, sort
   )
 
   useEffect(() => {
@@ -224,17 +236,40 @@ export default function AtlasPage() {
             onBlur={e => e.target.style.borderColor = 'rgba(201,169,110,0.12)'} />
         </div>
 
-        {/* Category pills */}
-        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2, scrollbarWidth: 'none' }}>
-          {CATEGORIES.map(cat => (
-            <button key={cat.key} onClick={() => setCategory(cat.key)} style={{
-              flexShrink: 0, padding: '4px 13px', borderRadius: 20, fontSize: 11,
-              background: category === cat.key ? 'rgba(201,169,110,0.15)' : 'rgba(28,40,64,0.6)',
-              color: category === cat.key ? '#d4a855' : 'var(--text-muted)',
-              border: `1px solid ${category === cat.key ? 'rgba(201,169,110,0.45)' : 'rgba(201,169,110,0.08)'}`,
-              transition: 'all 0.15s', fontWeight: category === cat.key ? 600 : 400,
-            }}>{cat.label}</button>
-          ))}
+        {/* Category pills + sort row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {/* Category pills — scrollable */}
+          <div style={{ flex: 1, display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2, scrollbarWidth: 'none' }}>
+            {CATEGORIES.map(cat => (
+              <button key={cat.key} onClick={() => setCategory(cat.key)} style={{
+                flexShrink: 0, padding: '4px 13px', borderRadius: 20, fontSize: 11,
+                background: category === cat.key ? 'rgba(201,169,110,0.15)' : 'rgba(28,40,64,0.6)',
+                color: category === cat.key ? '#d4a855' : 'var(--text-muted)',
+                border: `1px solid ${category === cat.key ? 'rgba(201,169,110,0.45)' : 'rgba(201,169,110,0.08)'}`,
+                transition: 'all 0.15s', fontWeight: category === cat.key ? 600 : 400,
+              }}>{cat.label}</button>
+            ))}
+          </div>
+
+          {/* Price sort button — cycles: default → asc → desc → default */}
+          <button
+            onClick={() => setSort(s => s === 'default' ? 'price_asc' : s === 'price_asc' ? 'price_desc' : 'default')}
+            title="依價格排序"
+            style={{
+              flexShrink: 0,
+              display: 'flex', alignItems: 'center', gap: 3,
+              padding: '4px 10px', borderRadius: 20, fontSize: 11,
+              background: sort !== 'default' ? 'rgba(201,169,110,0.15)' : 'rgba(28,40,64,0.6)',
+              color: sort !== 'default' ? '#d4a855' : 'var(--text-muted)',
+              border: `1px solid ${sort !== 'default' ? 'rgba(201,169,110,0.45)' : 'rgba(201,169,110,0.08)'}`,
+              transition: 'all 0.15s', fontWeight: sort !== 'default' ? 600 : 400,
+            }}
+          >
+            💰
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10 }}>
+              {sort === 'price_asc' ? '↑' : sort === 'price_desc' ? '↓' : '—'}
+            </span>
+          </button>
         </div>
       </div>
 
