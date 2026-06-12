@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { proxyImage } from '../lib/imageProxy'
@@ -32,7 +32,6 @@ function FishCard({ fish, onClick }) {
       onTouchStart={e => { e.currentTarget.style.transform = 'scale(0.97)'; e.currentTarget.style.borderColor = 'rgba(201,169,110,0.4)' }}
       onTouchEnd={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.borderColor = 'rgba(201,169,110,0.15)' }}
     >
-      {/* Gold left accent line */}
       <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 2, background: 'linear-gradient(180deg, #d4a855, transparent)', zIndex: 2 }} />
 
       <div style={{ aspectRatio: '4/3', background: 'var(--bg-surface)', position: 'relative', overflow: 'hidden' }}>
@@ -76,89 +75,121 @@ function FishCard({ fish, onClick }) {
   )
 }
 
-// 用來判斷 search 是否可能命中 common_names 的本地快速過濾
-// （Supabase query 也會搜，但先本地排序讓結果更自然）
-function matchesSearch(fish, search) {
-  if (!search) return true
-  const q = search.toLowerCase()
-  if (fish.name?.toLowerCase().includes(q)) return true
-  if (fish.scientific_name?.toLowerCase().includes(q)) return true
-  if (fish.common_names?.toLowerCase().includes(q)) return true
-  return false
+// ── 全域 cache：App 生命週期內只撈一次 ──────────────────────
+let _allFishes  = null   // 全部文字資料（含 common_names）
+let _imageMap   = null   // id → cover_photo URL
+let _fetchingText  = false
+let _fetchingImg   = false
+
+async function ensureTextLoaded() {
+  if (_allFishes) return _allFishes
+  if (_fetchingText) {
+    // 等另一個 call 完成
+    await new Promise(r => setTimeout(r, 80))
+    return ensureTextLoaded()
+  }
+  _fetchingText = true
+  const { data } = await supabase
+    .from('fishes')
+    .select('id,name,scientific_name,category,market_price,common_names')
+    .order('created_at', { ascending: false })
+    .limit(2000)
+  _allFishes = data || []
+  _fetchingText = false
+  return _allFishes
 }
 
-const INITIAL_SIZE = 8   // 第一批顯示張數
-const PAGE_SIZE    = 24  // 後續每批張數
+async function ensureImagesLoaded(ids) {
+  if (_imageMap) return _imageMap
+  if (_fetchingImg) return null
+  _fetchingImg = true
+  const { data } = await supabase
+    .from('fishes')
+    .select('id,cover_photo')
+    .in('id', ids)
+  _imageMap = {}
+  ;(data || []).forEach(r => { if (r.cover_photo) _imageMap[r.id] = r.cover_photo })
+  _fetchingImg = false
+  return _imageMap
+}
+
+export function invalidateFishCache() {
+  _allFishes = null
+  _imageMap  = null
+}
+
+// ── 搜尋過濾（本地，即時）────────────────────────────────────
+function applyFilter(list, search, category) {
+  let out = list
+  if (category !== 'all') out = out.filter(f => f.category === category)
+  if (search) {
+    const q = search.toLowerCase()
+    out = out.filter(f =>
+      f.name?.toLowerCase().includes(q) ||
+      f.scientific_name?.toLowerCase().includes(q) ||
+      f.common_names?.toLowerCase().includes(q)
+    )
+  }
+  return out
+}
 
 export default function AtlasPage() {
   const navigate = useNavigate()
-  const [fishes, setFishes]     = useState([])
-  const [loading, setLoading]   = useState(true)
-  const [search, setSearch]     = useState('')
-  const [category, setCategory] = useState('all')
-  const [page, setPage]         = useState(0)
-  const [hasMore, setHasMore]   = useState(true)
-  const loaderRef = useRef(null)
 
-  // 第一批：先抓 INITIAL_SIZE 快速顯示
-  const fetchInitial = useCallback(async (srch, cat) => {
-    setLoading(true)
-    let q = supabase
-      .from('fishes')
-      .select('id,name,scientific_name,category,market_price,cover_photo,common_names')
-      .order('created_at', { ascending: false })
-      .range(0, INITIAL_SIZE - 1)
+  const [allFishes, setAllFishes] = useState(_allFishes || [])
+  const [imageMap,  setImageMap]  = useState(_imageMap  || {})
+  const [loading,   setLoading]   = useState(!_allFishes)
+  const [search,    setSearch]    = useState('')
+  const [category,  setCategory]  = useState('all')
 
-    if (srch) q = q.or(`name.ilike.%${srch}%,scientific_name.ilike.%${srch}%,common_names.ilike.%${srch}%`)
-    if (cat !== 'all') q = q.eq('category', cat)
+  // 把 imageMap patch 進 allFishes 後的合併結果
+  const fishes = applyFilter(
+    allFishes.map(f => ({ ...f, cover_photo: imageMap[f.id] ?? f.cover_photo ?? null })),
+    search, category
+  )
 
-    const { data } = await q
-    if (!data) { setLoading(false); return }
-    setFishes(data)
-    setPage(1)
-    setHasMore(data.length === INITIAL_SIZE)
-    setLoading(false)
+  useEffect(() => {
+    let cancelled = false
+
+    async function load() {
+      // Step 1：文字（快，無圖片 URL，進場後立刻可搜）
+      const text = await ensureTextLoaded()
+      if (cancelled) return
+      setAllFishes([...text])
+      setLoading(false)
+
+      // Step 2：圖片（背景，一次來回）
+      if (!_imageMap) {
+        const ids = text.map(f => f.id)
+        const imgs = await ensureImagesLoaded(ids)
+        if (cancelled || !imgs) return
+        setImageMap({ ...imgs })
+      }
+    }
+
+    load()
+    return () => { cancelled = true }
   }, [])
 
-  // 後續分頁
-  const fetchMore = useCallback(async () => {
-    if (!hasMore || loading) return
-    setLoading(true)
-    const start = INITIAL_SIZE + (page - 1) * PAGE_SIZE
-    let q = supabase
-      .from('fishes')
-      .select('id,name,scientific_name,category,market_price,cover_photo,common_names')
-      .order('created_at', { ascending: false })
-      .range(start, start + PAGE_SIZE - 1)
-
-    if (search) q = q.or(`name.ilike.%${search}%,scientific_name.ilike.%${search}%,common_names.ilike.%${search}%`)
-    if (category !== 'all') q = q.eq('category', category)
-
-    const { data } = await q
-    if (!data) { setLoading(false); return }
-    setFishes(p => [...p, ...data])
-    setPage(p => p + 1)
-    setHasMore(data.length === PAGE_SIZE)
-    setLoading(false)
-  }, [search, category, page, hasMore, loading])
-
-  // 搜尋或分類改變 → 重置
+  // 新增/刪除後需要清 cache 並重撈（由外部呼叫 invalidateFishCache() 觸發）
+  // 這裡監聽 Supabase realtime 讓資料自動更新
   useEffect(() => {
-    setFishes([])
-    setPage(0)
-    setHasMore(true)
-    fetchInitial(search, category)
-  }, [search, category]) // eslint-disable-line
-
-  // Intersection Observer 觸發後續載入
-  useEffect(() => {
-    const obs = new IntersectionObserver(
-      e => { if (e[0].isIntersecting) fetchMore() },
-      { threshold: 0.1 }
-    )
-    if (loaderRef.current) obs.observe(loaderRef.current)
-    return () => obs.disconnect()
-  }, [fetchMore])
+    const channel = supabase
+      .channel('atlas-fishes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'fishes' }, () => {
+        _allFishes = null
+        _imageMap  = null
+        setLoading(true)
+        ensureTextLoaded().then(text => {
+          setAllFishes([...text])
+          setLoading(false)
+          const ids = text.map(f => f.id)
+          ensureImagesLoaded(ids).then(imgs => { if (imgs) setImageMap({ ...imgs }) })
+        })
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [])
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1 }}>
@@ -209,24 +240,21 @@ export default function AtlasPage() {
 
       {/* Grid */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '12px 12px 8px' }}>
-        {loading && fishes.length === 0 ? (
+        {loading ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10 }}>
             {Array.from({ length: 6 }).map((_, i) => <div key={i} className="skeleton" style={{ aspectRatio: '3/4', borderRadius: 16 }} />)}
           </div>
         ) : fishes.length === 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 200, color: 'var(--text-muted)', gap: 10 }}>
             <span style={{ fontSize: 36 }}>🌊</span>
-            <span style={{ fontSize: 13 }}>尚無資料，去新增第一筆吧！</span>
+            <span style={{ fontSize: 13 }}>
+              {search || category !== 'all' ? '找不到符合的結果' : '尚無資料，去新增第一筆吧！'}
+            </span>
           </div>
         ) : (
-          <>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10 }}>
-              {fishes.map(fish => <FishCard key={fish.id} fish={fish} onClick={() => navigate(`/fish/${fish.id}`)} />)}
-            </div>
-            <div ref={loaderRef} style={{ height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {loading && hasMore && <div style={{ width: 18, height: 18, borderRadius: '50%', border: '2px solid #d4a855', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />}
-            </div>
-          </>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10 }}>
+            {fishes.map(fish => <FishCard key={fish.id} fish={fish} onClick={() => navigate(`/fish/${fish.id}`)} />)}
+          </div>
         )}
       </div>
     </div>
