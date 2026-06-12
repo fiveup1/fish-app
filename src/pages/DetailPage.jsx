@@ -242,16 +242,16 @@ export default function DetailPage() {
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 4 }}>
             {editingName ? (
               /* ── 編輯名稱 inline ── */
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
                 <input
                   ref={nameInputRef}
                   value={nameInput}
                   onChange={e => setNameInput(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') handleSaveName(); if (e.key === 'Escape') setEditingName(false) }}
-                  maxLength={40}
+                  maxLength={20}
                   style={{
-                    flex: 1, minWidth: 0,
-                    fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 700,
+                    width: 0, flex: '1 1 0',
+                    fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700,
                     color: 'var(--cream)',
                     background: 'rgba(28,40,64,0.85)',
                     border: '1px solid rgba(201,169,110,0.45)',
